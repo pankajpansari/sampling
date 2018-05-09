@@ -12,18 +12,9 @@ import torch
 from torch.autograd import Variable
 from variance import plot_variance
 from variance import multilinear_importance 
-from networks import Net
-from networks import Net2
-from networks import Net3
-from networks import Net4
 from helpers import getProb
 from helpers import getLogProb
-from helpers import submodObj
-from helpers import constObj
-from helpers import obj1 
-from exact_training import training_exact 
-from exact_training import kl_loss_exact 
-from exact_training import getExactRelax
+from influence import objective 
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -32,7 +23,7 @@ import itertools
 
 ifDebug = 0
 
-def kl_loss_mc_uniform(input, proposal, L, nsamples):
+def kl_loss_mc_uniform(input, proposal, g, nsamples):
     #Estimate the objective function using sets from uniform distribution
     batch_size = input.size()[0]
     obj = Variable(torch.FloatTensor([0]*batch_size)) 
@@ -44,7 +35,7 @@ def kl_loss_mc_uniform(input, proposal, L, nsamples):
     for t in range(nsamples):
         #draw a sample/set from the uniform distribution
         sample = Variable(torch.bernoulli(torch.FloatTensor([0.5]*N)))
-        val = torch.abs(submodObj(L, sample))
+        val = objective(g) 
 #        val = torch.abs(constObj(L, sample))
 #        val = torch.abs(obj1(L, sample))
         inputlogP = getLogProb(sample, input)
@@ -75,37 +66,6 @@ def kl_loss_mc_proposal(input, proposal, L, nsamples):
             obj_t += torch.log(propP) - torch.log(y)
         obj[t] = obj_t/nsamples
     return obj.mean()
-
-def main2():
-    torch_seed = 123 
-    np_seed = 456 
-    torch.manual_seed(torch_seed)
-    np.random.seed(np_seed)
-    scale = 0.1
-    w_m = 0.1
-    N = 8 
-    batch_size = 4
-    phi = Variable(torch.randn(N, N))
-    S = torch.mm(phi, torch.transpose(phi, 0, 1))
-    m = Variable(torch.randn(N, 1))
-    M = torch.sqrt(torch.exp(w_m * m))
-    temp = torch.sqrt(torch.exp(w_m * m)) 
-    M = torch.diag(torch.squeeze(temp))
-    L = scale * (torch.mm(M, S).mm(M))
-    input = Variable(torch.rand(batch_size, N), requires_grad = True)
-    proposal = Variable(torch.rand(batch_size, N))
-#    print input, proposal
-    loss1 = kl_loss_exact(input, proposal, L)
-    print "exact = ", loss1.data[0]
-    loss2 = kl_loss_mc_uniform(input, proposal, L, 1000) 
-    print "mc = ", loss2.data[0]
-#    for t in range(10):
-    loss1.backward()
-    print input.grad
-    input.grad.data.zero_()
-    print input.grad
-    loss2.backward()
-    print input.grad
 
 def kl_loss_mc_uniform_multipleL(input, proposal, L_mat, nsamples):
     #Estimate the objective function using sets from uniform distribution
@@ -219,7 +179,7 @@ def entropy_mc(output, nsamples):
         ent_sum += -torch.log(getProb(sample, output))
     return ent_sum.sum()/(nsamples*batch_size)
                     
-def training_mc(input, N, net, lr1, lr2, mom, minibatch_size, num_samples_mc, file_prefix):
+def training_mc(input, g, N, net, lr1, lr2, mom, minibatch_size, num_samples_mc, file_prefix):
 
     optimizer = optim.Adam(net.parameters(), lr=lr1)
 #    optimizer = optim.SGD(net.parameters(), lr=lr1)
@@ -261,15 +221,13 @@ def training_mc(input, N, net, lr1, lr2, mom, minibatch_size, num_samples_mc, fi
     optimizer2 = optim.Adam(net.parameters(), lr=lr2)
 #    optimizer2 = optim.SGD(net.parameters(), lr=lr2, momentum = mom)
 
-    L = input[0, N:].view(N, N)
-
     for epoch in range(200):
         optimizer2.zero_grad()   # zero the gradient buffers
         ind = torch.randperm(batch_size)[0:minibatch_size]
         minibatch = input[ind]
 #        minibatch = input
         output = net(minibatch[:, 0:N]) 
-        loss = kl_loss_mc_uniform(minibatch[:, 0:N], output, L, num_samples_mc)
+        loss = kl_loss_mc_uniform(minibatch[:, 0:N], output, g, num_samples_mc)
         print "Epoch: ", epoch, "       loss = ", loss.data[0]
         f.write("Epoch: " +  str(epoch) +  "       loss = " + str(loss.data[0]) + "\n")
         loss.backward()
@@ -292,9 +250,9 @@ def training_mc(input, N, net, lr1, lr2, mom, minibatch_size, num_samples_mc, fi
 
 def main():
 
-    if len(sys.argv) < 11:
-        print "Usage: python mlp_dpp.py torch_seed dpp_size architecture_choice lr_recon lr_kl momentum #DPPs batch_size minibatch_size num_samples_mc if_exact_kl"
-        print "python mlp_dpp.py 123 8 1 0.0001 0.001 0.01 1 100 10 10 1"
+#    if len(sys.argv) < 11:
+#        print "Usage: python mlp_dpp.py torch_seed dpp_size architecture_choice lr_recon lr_kl momentum #DPPs batch_size minibatch_size num_samples_mc if_exact_kl"
+#        print "python mlp_dpp.py 123 8 1 0.0001 0.001 0.01 1 100 10 10 1"
         sys.exit()
     start = time.time()
     torch_seed = int(sys.argv[1])
@@ -304,14 +262,14 @@ def main():
     lr1 = float(sys.argv[4])
     lr2 = float(sys.argv[5])
     mom = float(sys.argv[6])
-    num_DPP = int(sys.argv[7])
+    num_graphs = int(sys.argv[7])
     batch_size = int(sys.argv[8])
     minibatch_size = int(sys.argv[9])
     num_samples_mc = int(sys.argv[10])
     if_exact = int(sys.argv[11])
     wdir = str(os.environ['result_dir'])
  #   wdir = '/home/pankaj/Sampling/data/working/03_04_2018/'
-    file_prefix = wdir + '/dpp_' + str(torch_seed) + '_' + str(np_seed) + '_' + str(N) + '_' + str(architecture_choice) + '_' + str(lr1) + '_' + str(lr2) + '_' + str(mom) + '_' + str(num_DPP) +  '_' + str(batch_size) + '_' + str(minibatch_size) + '_' + str(num_samples_mc) + '_' + str(if_exact)
+    file_prefix = wdir + '/graph_' + str(torch_seed) + '_' + str(np_seed) + '_' + str(N) + '_' + str(architecture_choice) + '_' + str(lr1) + '_' + str(lr2) + '_' + str(mom) + '_' + str(num_DPP) +  '_' + str(batch_size) + '_' + str(minibatch_size) + '_' + str(num_samples_mc) + '_' + str(if_exact)
 
     torch.manual_seed(torch_seed)
     np.random.seed(np_seed)

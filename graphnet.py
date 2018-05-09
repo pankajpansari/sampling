@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torch.autograd import Variable
+import sys
 
 class GraphConvLayer(nn.Module):
     def __init__(self, p, w_std, extra_feat_size=0):
@@ -10,7 +11,7 @@ class GraphConvLayer(nn.Module):
         self.w_std = w_std
 
         node_feat = 2 + extra_feat_size
-        edge_feat = 4
+        edge_feat = 2
         self.t1 = nn.Parameter(torch.Tensor(self.p, node_feat))
         self.t2 = nn.Parameter(torch.Tensor(self.p, self.p))
         self.t3 = nn.Parameter(torch.Tensor(self.p, self.p))
@@ -29,7 +30,7 @@ class GraphConvLayer(nn.Module):
         n_node = adjacency.size(1)
         term1 = self.t1.matmul(node_feat)
         term2 = self.t2.matmul(mu).matmul(adjacency)
-        term3_1 = F.relu(self.t4.matmul(edge_feat.view(batch_size, 4, n_node * n_node)))
+        term3_1 = F.relu(self.t4.matmul(edge_feat.view(batch_size, 2, n_node * n_node)))
         term3_1 = term3_1.view(batch_size, self.p, n_node, n_node).sum(-1)
         term3 = self.t3.matmul(term3_1)
         
@@ -55,8 +56,9 @@ class GraphConv(nn.Module):
         n_node = adjacency.size(1)
         # Node features
         to_stack = []
-        to_stack.append(1-x)
+        to_stack.append(x)
         to_stack.append(Variable(x.data.new([1]).expand_as(x)))
+#        print to_stack
         if extra_feat is not None:
             if extra_feat.ndimension() == 2:
                 assert(self.extra_feat_size == 1)
@@ -65,18 +67,24 @@ class GraphConv(nn.Module):
                 assert(extra_feat.ndimension() == 3)
                 assert(extra_feat.size(2) == self.extra_feat_size)
                 for i in range(extra_feat.size(2)):
-                    to_stack.append(extra_feat.select(-1, i))
-        node_feat = torch.stack(to_stack, 1)
+                    to_stack.append(extra_feat.select(2, i))
+
+        node_feat = torch.stack(to_stack, 1).float()
+
         # Edge features
-        edge_feat = x.data.new(batch_size, 4, n_node, n_node)
-        edge_feat.select(1, 3).fill_(1)
-        edge_feat.select(1, 1).copy_(weights.data)
-        edge_feat.select(1, 0).copy_(x.data.unsqueeze(-1).expand_as(weights))
-        is_edge_cut = 2 * x.data - 1
-        is_edge_cut = torch.bmm(is_edge_cut.unsqueeze(-1), is_edge_cut.unsqueeze(-2))
-        is_edge_cut = -(is_edge_cut - 1)/2
-        edge_feat.select(1, 2).copy_(is_edge_cut)
+#        temp = x.unsqueeze(1)
+#        temp = temp.repeat(1, n_node, 1) 
+#        to_stack_edge = []
+#        for i in range(temp.size(0)):
+#            to_stack_edge.append(temp.select(0, i).t() - temp.select(0, i))
+#        x_diff_feat =  torch.stack(to_stack_edge, 0)
+
+        edge_feat = x.data.new(batch_size, 2, n_node, n_node)
+        edge_feat.select(1, 0).copy_(weights.data)
+        edge_feat.select(1, 1).fill_(1)
+#        edge_feat.select(3, 2).copy_(x_diff_feat.data)
         edge_feat = Variable(edge_feat)
+
         mu = Variable(x.data.new(batch_size, self.p, n_node).zero_())
 
         for layer in self.layers:
@@ -117,3 +125,30 @@ class GraphScorer(nn.Module):
         output_distribution = torch.sigmoid(output)
 
         return output_distribution
+
+class MyNet(nn.Module):
+    def __init__(self):
+        super(MyNet, self).__init__()
+        
+        n_layer = 3
+        p = 32
+        w_scale = 1e-3  
+        extra_feat = 6
+        self.conv = GraphConv(n_layer, p, w_scale, extra_feat)
+        self.scorer = GraphScorer(p, w_scale)
+
+    def forward(self, S, adjacency, weights, extra, choice=None):
+#        adjacency_v = Variable(adjacency)
+#        weights_v = Variable(weights)
+#        mu = self.conv(S, adjacency_v, weights_v, extra)
+        mu = self.conv(S, adjacency, weights, extra)
+        scores = self.scorer(mu)
+        return scores
+#        if choice is not None:
+#            topk_val = scores.gather(1, choice)
+#            topk_ind = choice
+#        else:
+#            topk_val, topk_ind = torch.topk(scores, 3, dim=1)
+#            topk_ind, _ = torch.sort(topk_ind.squeeze_(0))
+#
+#        return topk_val.sum(-1), topk_ind
