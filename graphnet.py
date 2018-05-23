@@ -20,10 +20,10 @@ class GraphConvLayer(nn.Module):
         self.reset()
 
     def reset(self):
-        nn.init.normal(self.t1, mean=0, std=self.w_std)
-        nn.init.normal(self.t2, mean=0, std=self.w_std)
-        nn.init.normal(self.t3, mean=0, std=self.w_std)
-        nn.init.normal(self.t4, mean=0, std=self.w_std)
+        nn.init.normal_(self.t1, mean=0, std=self.w_std)
+        nn.init.normal_(self.t2, mean=0, std=self.w_std)
+        nn.init.normal_(self.t3, mean=0, std=self.w_std)
+        nn.init.normal_(self.t4, mean=0, std=self.w_std)
 
     def forward(self, node_feat, mu, adjacency, edge_feat):
         batch_size = node_feat.size(0)
@@ -87,6 +87,7 @@ class GraphConv(nn.Module):
 
         mu = Variable(x.data.new(batch_size, self.p, n_node).zero_())
 
+#        print node_feat.size(), edge_feat.size()
         for layer in self.layers:
             mu = layer(node_feat, mu, adjacency, edge_feat)
 
@@ -106,10 +107,10 @@ class GraphScorer(nn.Module):
         self.reset()
 
     def reset(self):
-        nn.init.normal(self.t5_1, mean=0, std=self.w_std)
-        nn.init.normal(self.t5_2, mean=0, std=self.w_std)
-        nn.init.normal(self.t6, mean=0, std=self.w_std)
-        nn.init.normal(self.t7, mean=0, std=self.w_std)
+        nn.init.normal_(self.t5_1, mean=0, std=self.w_std)
+        nn.init.normal_(self.t5_2, mean=0, std=self.w_std)
+        nn.init.normal_(self.t6, mean=0, std=self.w_std)
+        nn.init.normal_(self.t7, mean=0, std=self.w_std)
 
     def forward(self, mu):
         accum = mu.sum(-1, keepdim=True)
