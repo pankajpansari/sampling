@@ -4,22 +4,43 @@ import numpy as np
 import math
 import torch
 from influence import ic_model as submodObj
+from influence import Influence 
 from torch.autograd import Variable
 import logger
 from builtins import range
+import time
 
-def getRelax(G, x, nsamples): 
+def herd_points(probs, num):
+    """ Based on Welling & Chen (2010), eqn (18) and (19) """
+    x = probs > 0.5
+    w = probs - x[-1].float()
+    x = x.unsqueeze(0)
+
+    for i in range(num - 1):
+        x_next = (w > 0.5)
+        w = w + probs - x_next.float() # np.mean(x, 0) - x_next 
+        x = torch.cat((x, x_next.unsqueeze(0)))
+
+    return x.float()
+
+def getRelax(G, x, nsamples, influ_obj, herd = True): 
 
     current_sum = Variable(torch.FloatTensor([0]), requires_grad = True) 
 
-    for trial in range(nsamples):
-        sample = Variable(torch.bernoulli(x.data))
-        current_sum = current_sum + submodObj(G, sample)
+    if herd:
+        samples_list = herd_points(x, nsamples) 
+    else:
+        samples_list = Variable(torch.bernoulli(x.repeat(nsamples, 1)))
+
+    for sample in samples_list:
+        current_sum = current_sum + influ_obj(sample.numpy())
 
     return current_sum/nsamples
 
 def getCondGrad(grad, k):
+
     #conditional gradient for cardinality constraints
+
     N = grad.shape[0]
     top_k = Variable(torch.zeros(N)) #conditional grad
     sorted_ind = torch.sort(grad, descending = True)[1][0:k]
@@ -28,42 +49,74 @@ def getCondGrad(grad, k):
     top_k_positive = (top_k.byte() * positive).float()
     return top_k_positive 
 
-def getGrad(G, x, nsamples):
-#Returns the gradient vector of the multilinear relaxation at x as given in Chekuri's paper
-#(See Theorem 1 in nips2012 paper)
+def getGrad(G, x, nsamples, influ_obj, herd = True):
+
+    #Returns the gradient vector of the multilinear relaxation at x as given in Chekuri's paper
+    #(See Theorem 1 in nips2012 paper)
+
     N = G.number_of_nodes()
     grad = Variable(torch.zeros(N))
 
-    for p in np.arange(N):
-        x_include = x.clone()
-        x_exclude  = x.clone() 
-        x_include[p] = 1
-        x_exclude[p] = 0
+    if herd:
+        samples_list = herd_points(x, nsamples) 
+    else:
+        samples_list = Variable(torch.bernoulli(x.repeat(nsamples, 1)))
 
-        grad[p] =  getRelax(G, x_include, nsamples) - getRelax(G, x_exclude, nsamples)
+    for t in range(nsamples):
+        sample = samples_list[t] 
+        m = torch.zeros(sample.size()) 
+        for p in np.arange(N):
+            m[p] = 1
+            grad[p] = grad[p] + (influ_obj(np.logical_or(sample.numpy(), m.numpy())) - influ_obj(np.logical_and(sample.numpy(), np.logical_not(m.numpy()))))
+            m[p] = 0
     return grad
 
 
-def runFrankWolfe(G, nsamples):
+def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter):
 
     N = nx.number_of_nodes(G)
 
-    x = Variable(torch.Tensor([0]*N))
+    x = Variable(torch.Tensor([1.0*k/N]*N))
     
-    for iter_num in np.arange(1, 50):
+    f = open(file_prefix + '_log.txt', 'w')
 
-        grad = getGrad(G, x, nsamples)
+    influ_obj = Influence(G, p, num_influ_iter)
 
-        x_star = getCondGrad(grad, 10)
+    tic = time.clock()
+
+    iter_num = 0
+    obj = getRelax(G, x, nsamples, influ_obj)
+    toc = time.clock()
+    print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic)
+
+    f.write(str(toc - tic) + " " + str(obj.item()) + "\n")
+
+    for iter_num in np.arange(1, num_fw_iter):
+
+        grad = getGrad(G, x, nsamples, influ_obj)
+
+        x_star = getCondGrad(grad, k)
 
         step = 2.0/(iter_num + 2) 
 
         x = step*x_star + (1 - step)*x
 
-        obj = getRelax(G, x, nsamples)
+        obj = getRelax(G, x, nsamples, influ_obj)
         
-        print "Iteration: ", iter_num, "    obj = ", obj, "     x = ", x
-   return x 
+        toc = time.clock()
+
+        print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic)
+
+        f.write(str(toc - tic) + " " + str(obj.item()) + "\n")
+
+    f.close()
+
+    print "Number of cache hits = ", influ_obj.cache_hits
+
+    f = open(file_prefix + '_gt.txt', 'w')
+    for x_t in x:
+        f.write(str(x_t.item()))
+    f.close()
 
 def main():
     grad = torch.randn(10)

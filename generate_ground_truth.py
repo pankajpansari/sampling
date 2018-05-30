@@ -8,8 +8,18 @@ from torch.autograd import Variable
 from frank_wolfe import runFrankWolfe, getGrad
 import time
 
+np.random.seed(1234)
+torch.manual_seed(1234) 
 #filename = '/home/pankaj/Sampling/data/input/social_graphs/train/g_k_7_0-network.txt'
-filename = '/home/pankaj/Sampling/data/input/social_graphs/g_k_5_0-network.txt'
+
+filename = '/home/pankaj/Sampling/data/input/social_graphs/k_5/g_k_5_0-network.txt'
+
+k = 5 #cardinality constraint
+nsamples_mlr = 20 #draw these many sets from x for multilinear relaxation
+num_fw_iter = 20
+p = 0.01
+num_influ_iter = 100
+
 f = open(filename, 'rU')
 nNodes = 0
 for line in f:
@@ -35,27 +45,11 @@ G = nx.DiGraph(w)
 
 N = nx.number_of_nodes(G)
 
-runFrankWolfe(G, 10)
+ind = filename.find('-')
+file_prefix = filename[0:ind]
 
-#tic = time.clock()
-#for t in range(100):
-#    sample = Variable(torch.bernoulli(torch.rand(N)))
-#    submodObj(G, sample)
-#toc = time.clock()
-#print "Time elapsed = ", toc - tic
-#print "Average time per call = ", (toc - tic)/100
-#
-#tic = time.clock()
-#x = torch.rand(N)
-#grad = getGrad(G, x, 100)
-#toc = time.clock()
-#print "Time elapsed = ", toc - tic
-#sys.exit()
-#count = 0
-#for t in sample.data:
-#    if t == 1:
-#        count += 1
-#
-#submodObj(G, sample)
+runFrankWolfe(G, nsamples_mlr, k, file_prefix, num_fw_iter, p, num_influ_iter)
 
+print "Ground truth written to: " + file_prefix + "_gt.txt"
+print "Log written to: " + file_prefix + "_log.txt"
 

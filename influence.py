@@ -9,16 +9,42 @@ import random
 import torch
 from torch.autograd import Variable
 
-np.random.seed(1)
- 
-def ic_model(G, sample, p = 0.01):
+random.seed(1234)
+
+class Influence(object):
+    def __init__(self, G, p, niter):
+        self.cache = {}
+        self.cache_hits = 0
+        self.G = G
+        self.niter = niter 
+        self.p = p 
+
+    def reset(self):
+        self.cache.reset()
+        self.cache_hits = 0
+
+    def __call__(self, sample):
+
+#        one_hot = sample.byte() 
+        key = sample.tobytes()
+
+#        val = ic_model(self.G, sample)
+#        self.cache[key] = val
+        if key not in self.cache:
+            val = ic_model(self.G, sample, self.p, self.niter)
+            self.cache[key] = val
+        else:
+            self.cache_hits += 1
+
+        return self.cache[key]
+
+###########################################
+def ic_model(G, sample, p, iterations):
 #Independent Cascade Model
 
     N = G.number_of_nodes()
-    iterations = 100                       # Number of Iterations
 
-    seed_set = [i for i in range(N) if sample.data[i] == 1]
-
+    seed_set = [i for i in range(N) if sample[i] == True]
     avg_influence = Variable(torch.FloatTensor([0]), requires_grad = True) 
 
     for j in range(iterations):            
