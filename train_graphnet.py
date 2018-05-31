@@ -9,6 +9,7 @@ from graphnet import GraphConv, GraphScorer, MyNet
 from torch.autograd import Variable
 from influence import ic_model as submodObj
 from variance import variance_estimate
+import matplotlib.pyplot as plt
 
 def getProb(sample, pVec):
     #sample is 0-1 set and pVec is a probability distribution
@@ -51,72 +52,91 @@ def reconstruction_loss(input, proposal):
     l2_norms = torch.norm(temp, 2, 1)
     return ((l2_norms**2).sum())/batch_size
 
-filename = '/home/pankaj/Sampling/data/input/social_graphs/example-network.txt'
-batch_size = 3 
+filename = ['/home/pankaj/Sampling/data/input/social_graphs/k_5/g_k_5_999-network.txt', '/home/pankaj/Sampling/data/input/social_graphs/k_5/g_k_5_998-network.txt']
+batch_size = len(filename) 
 eps = 1e-6 #for numerical stability in weight matrix - required for centrality computations
+
+k = 5
+adjacency = Variable(torch.zeros(batch_size, int(math.pow(2, k)), int(math.pow(2, k))))
+
+for this_graph in range(batch_size):
+    f = open(filename[this_graph], 'rU')
+
+    nNodes = 0
+    for line in f:
+        if line == '\n':
+            break
+        else:
+            nNodes += 1
+
+    this_graph_adj = np.zeros((nNodes, nNodes))
+
+    for line in f:
+        temp = line.strip('\n')
+        temp2 = temp.split(",")
+        a = int(temp2[0])
+        b = int(temp2[1])
+        w_ab = float(temp2[2])
+        if w_ab == 0:
+            this_graph_adj[a, b] = 0
+        else:
+            this_graph_adj[a, b] = 1
+
+
+    adjacency[this_graph] = Variable(torch.from_numpy(this_graph_adj)).float()
+
+#for this_graph in range(batch_size):
+#    G = nx.DiGraph(adjacency[this_graph].numpy())
+#
+#    N = nx.number_of_nodes(G)
+#    E = nx.number_of_edges(G)
+#
+#    #Query stats to check if graph read properly
+#    print N, E
+#    for t in range(N):
+#        print t, ":", 
+#        for p in G.neighbors(t):
+#            print p, 
+#        print
+#
+#    plt.imshow(adjacency[this_graph].numpy())
+#    plt.show()
+
+#sys.exit()
 #filename = './influmax/example-network.txt'
-f = open(filename, 'rU')
-nNodes = 0
-for line in f:
-    if line == '\n':
-        break
-    else:
-        nNodes += 1
 
-alphas = np.zeros((batch_size, nNodes, nNodes))
-adjacency = np.zeros((batch_size, nNodes, nNodes))
 
-for line in f:
-    temp = line.strip('\n')
-    temp2 = temp.split(",")
-    a = int(temp2[0])
-    b = int(temp2[1])
-    w_ab = float(temp2[2])
-    alphas[0, a, b] = w_ab
-    if w_ab == 0:
-        adjacency[0, a, b] = 0
-    else:
-        adjacency[0, a, b] = 1
-
-max_alpha = np.max(alphas)
-#alphas are affinity measures - take -ve to get a dissimilarity measure
-weights = max_alpha - alphas + eps
-weights = Variable(torch.from_numpy(weights)).float()
-adjacency = Variable(torch.from_numpy(adjacency)).float()
-w = np.asmatrix(weights.data[0])
-G = nx.DiGraph(w)
-
-w = torch.from_numpy(w.astype("float32")).clone()
-
-N = nx.number_of_nodes(G)
-x = Variable((torch.rand(batch_size, N)).float(), requires_grad = True)
-
-print "Network: #nodes:", N, "  #edges: ", nx.number_of_edges(G) 
 #Node features
 #I'm assuming that the dictionary is sorted by keys (node ids)
-in_degree = np.array((nx.in_degree_centrality(G)).values())
-in_degree = Variable(torch.from_numpy(in_degree).clone().repeat(batch_size, 1))
 
-out_degree = np.array((nx.out_degree_centrality(G)).values())
-out_degree = Variable(torch.from_numpy(out_degree).clone().repeat(batch_size, 1))
+num_node_feat = 6
+node_feat = Variable(torch.zeros(batch_size, int(math.pow(2, k)), num_node_feat))
 
-closeness = np.array((nx.closeness_centrality(G)).values())
-closeness = Variable(torch.from_numpy(closeness).clone().repeat(batch_size, 1))
+for this_graph in range(batch_size):
 
-between = np.array((nx.betweenness_centrality(G)).values())
-between = Variable(torch.from_numpy(between).clone().repeat(batch_size, 1))
+    G = nx.DiGraph(adjacency[this_graph].numpy())
 
-eigen_central = np.array((nx.eigenvector_centrality(G)).values())
-eigen_central = Variable(torch.from_numpy(eigen_central).clone().repeat(batch_size, 1))
+    in_degree = np.array((nx.in_degree_centrality(G)).values())
 
-pagerank = np.array((nx.pagerank(G)).values())
-pagerank = Variable(torch.from_numpy(pagerank).clone().repeat(batch_size, 1))
+    out_degree = np.array((nx.out_degree_centrality(G)).values())
 
-to_stack = [in_degree, out_degree, closeness, between, eigen_central, pagerank]
+    closeness = np.array((nx.closeness_centrality(G)).values())
 
-node_feat = torch.stack(to_stack, 2).float()
+    between = np.array((nx.betweenness_centrality(G)).values())
+
+    eigen_central = np.array((nx.eigenvector_centrality(G)).values())
+
+    pagerank = np.array((nx.pagerank(G)).values())
+
+    to_stack = [in_degree, out_degree, closeness, between, eigen_central, pagerank]
+
+    assert(len(to_stack) == num_node_feat)
+
+    node_feat[this_graph] = Variable(torch.from_numpy(np.stack(to_stack, 1)).float())
 
 net = MyNet()
+print net(adjacency, node_feat)
+sys.exit()
 
 lr1 = 1e-2
 
@@ -130,41 +150,3 @@ for epoch in range(10):
     print "Epoch: ", epoch, "       loss (l2 reconstruction) = ", loss.item()
     loss.backward()
     optimizer.step()    # Does the update
-
-sys.exit()
-
-lr2 = 1e-4
-optimizer2 = optim.Adam(net.parameters(), lr=lr2)
-
-num_samples_mc = 2
-
-#build cache of submodular func. evals of sets from x
-cache = []
-for t in x:
-    for p in range(num_samples_mc):
-        #draw set from x
-        sample = Variable(torch.bernoulli(t.squeeze(0).data))
-        val = submodObj(filename, sample)
-        cache.append((t, sample, val)) 
-
-print cache[-1]
-
-for epoch in range(1):
-    optimizer2.zero_grad()   # zero the gradient buffers
-    output = net(x, adjacency, weights, node_feat) 
-    loss = kl_loss_mc(x, output, filename, num_samples_mc)
-    print "Epoch: ", epoch, "       loss = ", loss.data[0]
-    loss.backward()
-    optimizer2.step()    # Does the update
-
-sys.exit()
-
-sample_list = [int(math.pow(2, t)) for t in range(1, N - 2)]
- 
-
-mu = net(x, adjacency, weights, None) 
-output = scorer(mu)
-
-for nsample in sample_list:
-    print "#samples = ", nsample, " ", variance_estimate(x, output, filename, nsample)
-#print mu

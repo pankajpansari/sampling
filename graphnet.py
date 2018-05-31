@@ -10,12 +10,12 @@ class GraphConvLayer(nn.Module):
         self.p = p
         self.w_std = w_std
 
-        node_feat = 2 + extra_feat_size
-        edge_feat = 2
-        self.t1 = nn.Parameter(torch.Tensor(self.p, node_feat))
+        num_node_feat = 1 + extra_feat_size
+        self.num_edge_feat = 1
+        self.t1 = nn.Parameter(torch.Tensor(self.p, num_node_feat))
         self.t2 = nn.Parameter(torch.Tensor(self.p, self.p))
         self.t3 = nn.Parameter(torch.Tensor(self.p, self.p))
-        self.t4 = nn.Parameter(torch.Tensor(self.p, edge_feat))
+        self.t4 = nn.Parameter(torch.Tensor(self.p, self.num_edge_feat))
 
         self.reset()
 
@@ -30,7 +30,7 @@ class GraphConvLayer(nn.Module):
         n_node = adjacency.size(1)
         term1 = self.t1.matmul(node_feat)
         term2 = self.t2.matmul(mu).matmul(adjacency)
-        term3_1 = F.relu(self.t4.matmul(edge_feat.view(batch_size, 2, n_node * n_node)))
+        term3_1 = F.relu(self.t4.matmul(edge_feat.view(batch_size, self.num_edge_feat, n_node * n_node)))
         term3_1 = term3_1.view(batch_size, self.p, n_node, n_node).sum(-1)
         term3 = self.t3.matmul(term3_1)
         
@@ -48,44 +48,27 @@ class GraphConv(nn.Module):
         for i in range(n_layer):
             self.layers.add_module(str(i), GraphConvLayer(p, w_std, extra_feat_size))
 
-    def forward(self, x, adjacency, weights, extra_feat):
-        assert(x.ndimension() == 2)
+    def forward(self, adjacency, extra_feat):
         assert(adjacency.ndimension() == 3)
-        assert(weights.ndimension() == 3)
-        batch_size = x.size(0)
+
+        batch_size = adjacency.size(0)
         n_node = adjacency.size(1)
-        # Node features
+
+        # Add a bias term to node features
         to_stack = []
-        to_stack.append(x)
-        to_stack.append(Variable(x.data.new([1]).expand_as(x)))
-#        print to_stack
-        if extra_feat is not None:
-            if extra_feat.ndimension() == 2:
-                assert(self.extra_feat_size == 1)
-                to_stack.append(extra_feat)
-            else:
-                assert(extra_feat.ndimension() == 3)
-                assert(extra_feat.size(2) == self.extra_feat_size)
-                for i in range(extra_feat.size(2)):
-                    to_stack.append(extra_feat.select(2, i))
+        to_stack.append(Variable(torch.ones(batch_size, n_node)))
+        assert(extra_feat.ndimension() == 3)
+        assert(extra_feat.size(2) == self.extra_feat_size)
+        for i in range(extra_feat.size(2)):
+            to_stack.append(extra_feat.select(2, i))
 
         node_feat = torch.stack(to_stack, 1).float()
 
-        # Edge features
-#        temp = x.unsqueeze(1)
-#        temp = temp.repeat(1, n_node, 1) 
-#        to_stack_edge = []
-#        for i in range(temp.size(0)):
-#            to_stack_edge.append(temp.select(0, i).t() - temp.select(0, i))
-#        x_diff_feat =  torch.stack(to_stack_edge, 0)
+        # Bias term only as edge features
+#        edge_feat.select(1, 1).fill_(1)
+        edge_feat = Variable(torch.ones(batch_size, n_node, n_node))
 
-        edge_feat = x.data.new(batch_size, 2, n_node, n_node)
-        edge_feat.select(1, 0).copy_(weights.data)
-        edge_feat.select(1, 1).fill_(1)
-#        edge_feat.select(3, 2).copy_(x_diff_feat.data)
-        edge_feat = Variable(edge_feat)
-
-        mu = Variable(x.data.new(batch_size, self.p, n_node).zero_())
+        mu = Variable(torch.zeros(batch_size, self.p, n_node))
 
 #        print node_feat.size(), edge_feat.size()
         for layer in self.layers:
@@ -132,24 +115,14 @@ class MyNet(nn.Module):
         super(MyNet, self).__init__()
         
         n_layer = 3
-        p = 32
+        p = 28
         w_scale = 1e-3  
         extra_feat = 6
         self.conv = GraphConv(n_layer, p, w_scale, extra_feat)
         self.scorer = GraphScorer(p, w_scale)
 
-    def forward(self, S, adjacency, weights, extra, choice=None):
-#        adjacency_v = Variable(adjacency)
-#        weights_v = Variable(weights)
-#        mu = self.conv(S, adjacency_v, weights_v, extra)
-        mu = self.conv(S, adjacency, weights, extra)
+    def forward(self, adjacency, extra, choice=None):
+        mu = self.conv(adjacency, extra)
         scores = self.scorer(mu)
         return scores
-#        if choice is not None:
-#            topk_val = scores.gather(1, choice)
-#            topk_ind = choice
-#        else:
-#            topk_val, topk_ind = torch.topk(scores, 3, dim=1)
-#            topk_ind, _ = torch.sort(topk_ind.squeeze_(0))
-#
-#        return topk_val.sum(-1), topk_ind
+
