@@ -4,6 +4,7 @@ import sys
 import numpy as np
 import torch.optim as optim
 import math
+import os
 
 from graphnet import GraphConv, GraphScorer, MyNet
 from torch.autograd import Variable
@@ -52,15 +53,25 @@ def reconstruction_loss(input, proposal):
     l2_norms = torch.norm(temp, 2, 1)
     return ((l2_norms**2).sum())/batch_size
 
-filename = ['/home/pankaj/Sampling/data/input/social_graphs/k_5/g_k_5_999-network.txt', '/home/pankaj/Sampling/data/input/social_graphs/k_5/g_k_5_998-network.txt']
-batch_size = len(filename) 
+graph_dir = '/home/pankaj/Sampling/data/input/social_graphs/k_5/'
+file_list = os.listdir(graph_dir)
+network_file_list = []
+for this_file in file_list:
+    if 'network' in this_file:
+        network_file_list.append(graph_dir + this_file)
+
+#network_file_list = ['/home/pankaj/Sampling/data/input/social_graphs/k_5/g_k_5_999-network.txt', '/home/pankaj/Sampling/data/input/social_graphs/k_5/g_k_5_998-network.txt']
+#batch_size = len(network_file_list) 
+batch_size = 500
 eps = 1e-6 #for numerical stability in weight matrix - required for centrality computations
 
 k = 5
 adjacency = Variable(torch.zeros(batch_size, int(math.pow(2, k)), int(math.pow(2, k))))
+ground_truth = Variable(torch.zeros(batch_size, int(math.pow(2, k))))
 
 for this_graph in range(batch_size):
-    f = open(filename[this_graph], 'rU')
+
+    f = open(network_file_list[this_graph], 'rU')
 
     nNodes = 0
     for line in f:
@@ -82,8 +93,19 @@ for this_graph in range(batch_size):
         else:
             this_graph_adj[a, b] = 1
 
-
+    f.close()
     adjacency[this_graph] = Variable(torch.from_numpy(this_graph_adj)).float()
+
+    gt_filename = network_file_list[this_graph].replace('-network.txt', '_gt.txt')
+
+    f2 = open(gt_filename, 'rU')
+
+    count = 0
+    for line in f2:
+        ground_truth[this_graph][count] = float(line)
+        count += 1
+
+    f2.close()
 
 #for this_graph in range(batch_size):
 #    G = nx.DiGraph(adjacency[this_graph].numpy())
@@ -103,7 +125,7 @@ for this_graph in range(batch_size):
 #    plt.show()
 
 #sys.exit()
-#filename = './influmax/example-network.txt'
+#network_file_list = './influmax/example-network.txt'
 
 
 #Node features
@@ -114,6 +136,7 @@ node_feat = Variable(torch.zeros(batch_size, int(math.pow(2, k)), num_node_feat)
 
 for this_graph in range(batch_size):
 
+#    print network_file_list[this_graph]
     G = nx.DiGraph(adjacency[this_graph].numpy())
 
     in_degree = np.array((nx.in_degree_centrality(G)).values())
@@ -135,18 +158,22 @@ for this_graph in range(batch_size):
     node_feat[this_graph] = Variable(torch.from_numpy(np.stack(to_stack, 1)).float())
 
 net = MyNet()
-print net(adjacency, node_feat)
-sys.exit()
 
-lr1 = 1e-2
+lr1 = 1e-3
 
 optimizer = optim.Adam(net.parameters(), lr=lr1)
 
-for epoch in range(10):
+log_prefix = '/home/pankaj/Sampling/data/working/31_05_2018/'
+f = open(log_prefix + 'training_log.txt', 'w')
+
+for epoch in range(500):
     #get minibatch
     optimizer.zero_grad()   # zero the gradient buffers
-    output = net(x, adjacency, weights, node_feat) 
-    loss = reconstruction_loss(x, output)
+    output = net(adjacency, node_feat) 
+    loss = reconstruction_loss(ground_truth, output)
     print "Epoch: ", epoch, "       loss (l2 reconstruction) = ", loss.item()
+    f.write(str(epoch) + " " + str(loss.item()) + "\n")
     loss.backward()
     optimizer.step()    # Does the update
+
+f.close()
