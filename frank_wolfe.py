@@ -87,7 +87,7 @@ def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter):
     iter_num = 0
     obj = getRelax(G, x, nsamples, influ_obj)
     toc = time.clock()
-    print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic)
+#    print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic)
 
     f.write(str(toc - tic) + " " + str(obj.item()) + "\n")
 
@@ -105,17 +105,17 @@ def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter):
         
         toc = time.clock()
 
-        print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic)
+#        print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic)
 
         f.write(str(toc - tic) + " " + str(obj.item()) + "\n")
 
     f.close()
 
-    print "Number of cache hits = ", influ_obj.cache_hits
+#    print "Number of cache hits = ", influ_obj.cache_hits
 
     f = open(file_prefix + '_gt.txt', 'w')
     for x_t in x:
-        f.write(str(x_t.item()))
+        f.write(str(x_t.item()) + '\n')
     f.close()
 
 def main():
