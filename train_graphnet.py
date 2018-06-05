@@ -5,12 +5,14 @@ import numpy as np
 import torch.optim as optim
 import math
 import os
+import logger
 
 from graphnet import GraphConv, GraphScorer, MyNet
 from torch.autograd import Variable
 from influence import ic_model as submodObj
 from variance import variance_estimate
 import matplotlib.pyplot as plt
+import visdom
 
 def getProb(sample, pVec):
     #sample is 0-1 set and pVec is a probability distribution
@@ -159,21 +161,43 @@ for this_graph in range(batch_size):
 
 net = MyNet()
 
-lr1 = 1e-3
+lr = 1e-3
+n_epochs = 500 
 
-optimizer = optim.Adam(net.parameters(), lr=lr1)
+#----------------------------------------------------------
+# Prepare logging
+#----------------------------------------------------------
 
-log_prefix = '/home/pankaj/Sampling/data/working/31_05_2018/'
+# create Experiment
+xp = logger.Experiment("train_graphnet", use_visdom=True, visdom_opts={'server': 'http://localhost', 'port': 8097}, time_indexing=False, xlabel='Epoch')
+
+# log the hyperparameters of the experiment
+xp.log_config({'lr': lr, 'n_epochs': n_epochs})
+
+# create parent metric for training metrics (easier interface)
+#xp.ParentWrapper(tag='train', name='parent', children=(xp.AvgMetric(name='loss')))
+xp.ParentWrapper(tag='train', name='parent', children=(xp.SimpleMetric(name='loss'),))
+optimizer = optim.Adam(net.parameters(), lr=lr)
+
+log_prefix = '/home/pankaj/Sampling/data/working/05_06_2018/'
 f = open(log_prefix + 'training_log.txt', 'w')
 
-for epoch in range(500):
+for epoch in range(n_epochs):
     #get minibatch
     optimizer.zero_grad()   # zero the gradient buffers
     output = net(adjacency, node_feat) 
     loss = reconstruction_loss(ground_truth, output)
+    xp.Parent_Train.update(loss=loss)
     print "Epoch: ", epoch, "       loss (l2 reconstruction) = ", loss.item()
     f.write(str(epoch) + " " + str(loss.item()) + "\n")
     loss.backward()
     optimizer.step()    # Does the update
+    xp.Parent_Train.log()
 
+#xp.to_json("my_json_log.json")  # or xp.to_pickle("my_pickle_log.pkl")
+#
+#xp2 = logger.Experiment("")  # new Experiment instance
+#xp2.from_json("my_json_log.json")  # or xp.from_pickle("my_pickle_log.pkl")
+#xp2.to_visdom(visdom_opts={'server': 'http://localhost', 'port': 8097})  # plot again data on visdom
+#
 f.close()
