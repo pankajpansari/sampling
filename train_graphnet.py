@@ -6,6 +6,7 @@ import torch.optim as optim
 import math
 import os
 import logger
+import random
 
 from graphnet import GraphConv, GraphScorer, MyNet
 from torch.autograd import Variable
@@ -64,105 +65,85 @@ for this_file in file_list:
 
 #network_file_list = ['/home/pankaj/Sampling/data/input/social_graphs/k_5/g_k_5_999-network.txt', '/home/pankaj/Sampling/data/input/social_graphs/k_5/g_k_5_998-network.txt']
 #batch_size = len(network_file_list) 
-batch_size = 500
-eps = 1e-6 #for numerical stability in weight matrix - required for centrality computations
+def get_data(start_id, end_id):
+    batch_size = end_id - start_id 
+    eps = 1e-6 #for numerical stability in weight matrix - required for centrality computations
+    
+    k = 5
+    adjacency = Variable(torch.zeros(batch_size, int(math.pow(2, k)), int(math.pow(2, k))))
+    ground_truth = Variable(torch.zeros(batch_size, int(math.pow(2, k))))
+    
+    for this_graph in range(batch_size):
+    
+        f = open(network_file_list[start_id + this_graph], 'rU')
+    
+        nNodes = 0
+        for line in f:
+            if line == '\n':
+                break
+            else:
+                nNodes += 1
+    
+        this_graph_adj = np.zeros((nNodes, nNodes))
+    
+        for line in f:
+            temp = line.strip('\n')
+            temp2 = temp.split(",")
+            a = int(temp2[0])
+            b = int(temp2[1])
+            w_ab = float(temp2[2])
+            if w_ab == 0:
+                this_graph_adj[a, b] = 0
+            else:
+                this_graph_adj[a, b] = 1
+    
+        f.close()
+        adjacency[this_graph] = Variable(torch.from_numpy(this_graph_adj)).float()
+    
+        gt_filename = network_file_list[this_graph].replace('-network.txt', '_gt.txt')
+    
+        f2 = open(gt_filename, 'rU')
+    
+        count = 0
+        for line in f2:
+            ground_truth[this_graph][count] = float(line)
+            count += 1
+    
+        f2.close()
+    
+    num_node_feat = 5
+    node_feat = Variable(torch.zeros(batch_size, int(math.pow(2, k)), num_node_feat))
+    
+    for this_graph in range(batch_size):
+    
+    #    print network_file_list[this_graph]
+        G = nx.DiGraph(adjacency[this_graph].numpy())
+    
+        in_degree = np.array((nx.in_degree_centrality(G)).values())
+    
+        out_degree = np.array((nx.out_degree_centrality(G)).values())
+    
+        closeness = np.array((nx.closeness_centrality(G)).values())
+    
+        between = np.array((nx.betweenness_centrality(G)).values())
+    
+#        eigen_central = np.array((nx.eigenvector_centrality(G)).values())
+    
+        pagerank = np.array((nx.pagerank(G)).values())
+    
+#        to_stack = [in_degree, out_degree, closeness, between, eigen_central, pagerank]
+        to_stack = [in_degree, out_degree, closeness, between, pagerank]
+    
+        assert(len(to_stack) == num_node_feat)
+    
+        node_feat[this_graph] = Variable(torch.from_numpy(np.stack(to_stack, 1)).float())
 
-k = 5
-adjacency = Variable(torch.zeros(batch_size, int(math.pow(2, k)), int(math.pow(2, k))))
-ground_truth = Variable(torch.zeros(batch_size, int(math.pow(2, k))))
-
-for this_graph in range(batch_size):
-
-    f = open(network_file_list[this_graph], 'rU')
-
-    nNodes = 0
-    for line in f:
-        if line == '\n':
-            break
-        else:
-            nNodes += 1
-
-    this_graph_adj = np.zeros((nNodes, nNodes))
-
-    for line in f:
-        temp = line.strip('\n')
-        temp2 = temp.split(",")
-        a = int(temp2[0])
-        b = int(temp2[1])
-        w_ab = float(temp2[2])
-        if w_ab == 0:
-            this_graph_adj[a, b] = 0
-        else:
-            this_graph_adj[a, b] = 1
-
-    f.close()
-    adjacency[this_graph] = Variable(torch.from_numpy(this_graph_adj)).float()
-
-    gt_filename = network_file_list[this_graph].replace('-network.txt', '_gt.txt')
-
-    f2 = open(gt_filename, 'rU')
-
-    count = 0
-    for line in f2:
-        ground_truth[this_graph][count] = float(line)
-        count += 1
-
-    f2.close()
-
-#for this_graph in range(batch_size):
-#    G = nx.DiGraph(adjacency[this_graph].numpy())
-#
-#    N = nx.number_of_nodes(G)
-#    E = nx.number_of_edges(G)
-#
-#    #Query stats to check if graph read properly
-#    print N, E
-#    for t in range(N):
-#        print t, ":", 
-#        for p in G.neighbors(t):
-#            print p, 
-#        print
-#
-#    plt.imshow(adjacency[this_graph].numpy())
-#    plt.show()
-
-#sys.exit()
-#network_file_list = './influmax/example-network.txt'
-
-
-#Node features
-#I'm assuming that the dictionary is sorted by keys (node ids)
-
-num_node_feat = 6
-node_feat = Variable(torch.zeros(batch_size, int(math.pow(2, k)), num_node_feat))
-
-for this_graph in range(batch_size):
-
-#    print network_file_list[this_graph]
-    G = nx.DiGraph(adjacency[this_graph].numpy())
-
-    in_degree = np.array((nx.in_degree_centrality(G)).values())
-
-    out_degree = np.array((nx.out_degree_centrality(G)).values())
-
-    closeness = np.array((nx.closeness_centrality(G)).values())
-
-    between = np.array((nx.betweenness_centrality(G)).values())
-
-    eigen_central = np.array((nx.eigenvector_centrality(G)).values())
-
-    pagerank = np.array((nx.pagerank(G)).values())
-
-    to_stack = [in_degree, out_degree, closeness, between, eigen_central, pagerank]
-
-    assert(len(to_stack) == num_node_feat)
-
-    node_feat[this_graph] = Variable(torch.from_numpy(np.stack(to_stack, 1)).float())
+    return adjacency, node_feat, ground_truth
 
 net = MyNet()
 
 lr = 1e-3
-n_epochs = 500 
+n_epochs = 50
 
 #----------------------------------------------------------
 # Prepare logging
@@ -177,27 +158,48 @@ xp.log_config({'lr': lr, 'n_epochs': n_epochs})
 # create parent metric for training metrics (easier interface)
 #xp.ParentWrapper(tag='train', name='parent', children=(xp.AvgMetric(name='loss')))
 xp.ParentWrapper(tag='train', name='parent', children=(xp.SimpleMetric(name='loss'),))
+xp.ParentWrapper(tag='val', name='parent', children=(xp.SimpleMetric(name='loss'),))
 optimizer = optim.Adam(net.parameters(), lr=lr)
 
 log_prefix = '/home/pankaj/Sampling/data/working/05_06_2018/'
 f = open(log_prefix + 'training_log.txt', 'w')
 
+tr_adj, tr_node_feat, tr_gt = get_data(0, 50)
+print "Got training data"
+val_adj, val_node_feat, val_gt = get_data(50, 100)
+print "Got validation data"
+
 for epoch in range(n_epochs):
     #get minibatch
     optimizer.zero_grad()   # zero the gradient buffers
-    output = net(adjacency, node_feat) 
-    loss = reconstruction_loss(ground_truth, output)
-    xp.Parent_Train.update(loss=loss)
-    print "Epoch: ", epoch, "       loss (l2 reconstruction) = ", loss.item()
-    f.write(str(epoch) + " " + str(loss.item()) + "\n")
-    loss.backward()
+
+    tr_output = net(tr_adj, tr_node_feat) 
+    tr_loss = reconstruction_loss(tr_gt, tr_output)
+
+    val_output = net(val_adj, val_node_feat) 
+    val_loss = reconstruction_loss(val_gt, val_output)
+
+    print "Epoch: ", epoch, "       train loss = ", tr_loss.item(), "      val loss = ", val_loss.item()
+
+    tr_loss.backward()
+    val_loss.backward()
+
     optimizer.step()    # Does the update
+
+    xp.Parent_Train.update(loss=tr_loss)
     xp.Parent_Train.log()
 
-#xp.to_json("my_json_log.json")  # or xp.to_pickle("my_pickle_log.pkl")
-#
-#xp2 = logger.Experiment("")  # new Experiment instance
-#xp2.from_json("my_json_log.json")  # or xp.from_pickle("my_pickle_log.pkl")
-#xp2.to_visdom(visdom_opts={'server': 'http://localhost', 'port': 8097})  # plot again data on visdom
-#
+    xp.Parent_Val.update(loss=val_loss)
+    xp.Parent_Val.log()
+
+tr_output = net(tr_adj, tr_node_feat) 
+val_output = net(val_adj, val_node_feat) 
+print '-'*50
+for t in range(2):
+    rand_ind = random.randrange(0, 50)
+    print tr_gt[rand_ind], tr_output[rand_ind]  
+    print reconstruction_loss(tr_gt[rand_ind].unsqueeze(0), tr_output[rand_ind].unsqueeze(0))
+    print tr_node_feat[t]
+xp.to_json(log_prefix + "train_log.json")
+
 f.close()
