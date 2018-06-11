@@ -13,36 +13,31 @@ torch.manual_seed(1234)
 
 
 def get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter):
+
     f = open(filename, 'rU')
-    nNodes = 0
+
+    G = nx.DiGraph()
+
     for line in f:
-        if line == '\n':
+        if line.find('Nodes') != -1:
+            N = int(line.split(' ')[2])
+            G.add_nodes_from(range(N))
             break
-        else:
-            nNodes += 1
-    
-    alphas = np.zeros((nNodes, nNodes))
-    
+
+    for _ in range(1):
+        next(f)
+
     for line in f:
-        temp = line.strip('\n')
-        temp2 = temp.split(",")
-        a = int(temp2[0])
-        b = int(temp2[1])
-        alphas[a, b] = float(temp2[2])
-    
-    max_alpha = np.max(alphas)
-    #alphas are affinity measures - take -ve to get a dissimilarity measure
-    weights = max_alpha - alphas
-    w = np.asmatrix(weights)
-    G = nx.DiGraph(w)
-    
-    N = nx.number_of_nodes(G)
-    
+        from_id = int(line.split()[0])
+        to_id = int(line.split()[1])
+        G.add_edge(from_id, to_id)
+
+  
     ind = filename.find('-')
-    file_prefix = filename[0:ind]
-    
+    file_prefix = filename[0:ind] + '_' + str(k) + '_' + str(nsamples_mlr) + '_' + str(num_fw_iter) + '_' + str(p) + '_' + str(num_influ_iter) 
     runFrankWolfe(G, nsamples_mlr, k, file_prefix, num_fw_iter, p, num_influ_iter)
 
+ 
 def main():
 
     tic = time.clock()

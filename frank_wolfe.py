@@ -45,9 +45,10 @@ def getCondGrad(grad, k):
     top_k = Variable(torch.zeros(N)) #conditional grad
     sorted_ind = torch.sort(grad, descending = True)[1][0:k]
     top_k[sorted_ind] = 1
-    positive = grad > 0
-    top_k_positive = (top_k.byte() * positive).float()
-    return top_k_positive 
+#    positive = grad > 0
+#    top_k_positive = (top_k.byte() * positive).float()
+#    return top_k_positive 
+    return top_k
 
 def getGrad(G, x, nsamples, influ_obj, herd = True):
 
@@ -78,7 +79,8 @@ def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter):
 
     x = Variable(torch.Tensor([1.0*k/N]*N))
     
-    f = open(file_prefix + '_log.txt', 'w')
+    bufsize = 0
+    f = open(file_prefix + '_log.txt', 'w', bufsize)
 
     influ_obj = Influence(G, p, num_influ_iter)
 
@@ -87,7 +89,7 @@ def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter):
     iter_num = 0
     obj = getRelax(G, x, nsamples, influ_obj)
     toc = time.clock()
-#    print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic)
+    print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic)
 
     f.write(str(toc - tic) + " " + str(obj.item()) + "\n")
 
@@ -105,8 +107,9 @@ def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter):
         
         toc = time.clock()
 
-#        print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic)
+        print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic)
 
+#        print sys.getsizeof(influ_obj.cache)
         f.write(str(toc - tic) + " " + str(obj.item()) + "\n")
 
     f.close()
