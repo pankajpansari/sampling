@@ -1,9 +1,6 @@
 import networkx as nx
-import ndlib.models.epidemics.SIRModel as sir
-import ndlib.models.epidemics.IndependentCascadesModel as ids
 import numpy as np
 import sys
-import ndlib.models.ModelConfig as mc
 import time
 import random
 import torch
