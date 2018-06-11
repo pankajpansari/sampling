@@ -33,7 +33,7 @@ def get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter):
         G.add_edge(from_id, to_id)
 
   
-    ind = filename.find('-')
+    ind = filename.find('.')
     file_prefix = filename[0:ind] + '_' + str(k) + '_' + str(nsamples_mlr) + '_' + str(num_fw_iter) + '_' + str(p) + '_' + str(num_influ_iter) 
     runFrankWolfe(G, nsamples_mlr, k, file_prefix, num_fw_iter, p, num_influ_iter)
 

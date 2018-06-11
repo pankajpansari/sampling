@@ -67,7 +67,6 @@ for this_file in file_list:
 #batch_size = len(network_file_list) 
 def get_data(start_id, end_id):
     batch_size = end_id - start_id 
-    eps = 1e-6 #for numerical stability in weight matrix - required for centrality computations
     
     k = 5
     adjacency = Variable(torch.zeros(batch_size, int(math.pow(2, k)), int(math.pow(2, k))))
@@ -192,8 +191,10 @@ for epoch in range(n_epochs):
     xp.Parent_Val.update(loss=val_loss)
     xp.Parent_Val.log()
 
+#Query some input, output values
 tr_output = net(tr_adj, tr_node_feat) 
 val_output = net(val_adj, val_node_feat) 
+
 print '-'*50
 for t in range(2):
     rand_ind = random.randrange(0, 50)
