@@ -18,6 +18,7 @@ f = open(command_file, 'w')
 for N in N_list:
     graph_dir = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/'
     file_list = os.listdir(graph_dir)
+
     k = int(math.ceil(0.05*N)) #cardinality constraint
 
     for this_file in file_list:

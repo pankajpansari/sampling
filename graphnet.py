@@ -63,10 +63,10 @@ class GraphConv(nn.Module):
             to_stack.append(extra_feat.select(2, i))
 
         node_feat = torch.stack(to_stack, 1).float()
+        edge_feat = Variable(torch.ones(batch_size, n_node, n_node))
 
         # Bias term only as edge features
 #        edge_feat.select(1, 1).fill_(1)
-        edge_feat = Variable(torch.ones(batch_size, n_node, n_node))
 
         mu = Variable(torch.zeros(batch_size, self.p, n_node))
 
@@ -77,10 +77,11 @@ class GraphConv(nn.Module):
         return mu
 
 class GraphScorer(nn.Module):
-    def __init__(self, p, w_std):
+    def __init__(self, p, w_std, k):
         super(GraphScorer, self).__init__()
         self.p = p
         self.w_std = w_std
+        self.k = k
 
         self.t5_1 = nn.Parameter(torch.Tensor(1, self.p))
         self.t5_2 = nn.Parameter(torch.Tensor(1, self.p))
@@ -107,7 +108,9 @@ class GraphScorer(nn.Module):
         output = g_score.expand_as(per_node_score) + per_node_score
 
         output_distribution = torch.sigmoid(output)
-
+        factors = self.k/output_distribution.sum(dim = 1)
+        normalised_output = torch.mul(output_distribution, factors.expand_as(output_distribution.t()).t())
+#        return normalised_output
         return output_distribution
 
 class MyNet(nn.Module):
@@ -116,10 +119,11 @@ class MyNet(nn.Module):
         
         n_layer = 3
         p = 28
-        w_scale = 1e-3  
+        w_scale = 1e-4  
         extra_feat = 5
+        k = 2
         self.conv = GraphConv(n_layer, p, w_scale, extra_feat)
-        self.scorer = GraphScorer(p, w_scale)
+        self.scorer = GraphScorer(p, w_scale, k)
 
     def forward(self, adjacency, extra, choice=None):
         mu = self.conv(adjacency, extra)

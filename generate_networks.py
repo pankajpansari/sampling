@@ -23,6 +23,7 @@ for logN in logN_list:
         if t % 100 == 0:
             print ".", 
         filename = destination_dir + "g_N_" + str(n_nodes) + '_' + str(t) + '.txt'
+        seed_value = seed_value + 1
 #        command = './influmax/./generate_nets -t:0 -g:' + seed_text + ' -n:' + str(n_nodes) + ' -e:' + str(n_edges) + ' -f:' + filename
         command = '/home/pankaj/Sampling/code/social_networks/snap/examples/krongen/krongen -m:' + seed_text + ' -i:' + str(logN) + ' -o:' + filename + ' -s:' + str(seed_value)
 #        print command
