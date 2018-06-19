@@ -160,7 +160,8 @@ def main():
 
     lr = float(sys.argv[1])
     mom = float(sys.argv[2])
-    n_epochs = int(sys.argv[3])
+#    n_epochs = int(sys.argv[3])
+    n_epochs = 0 
     total_size = 1000
     train_size = int(sys.argv[4])
     val_flag = int(sys.argv[5])
@@ -258,16 +259,17 @@ def main():
         xp.Parent_Baseline.update(loss=baseline_loss)
         xp.Parent_Baseline.log()
     
-    print "Training done.."
-    torch.save(net, save_full_name + '.net')
-    print "Baseline loss = ", baseline_loss.item()
+#    print "Training done.."
+#    torch.save(net, save_full_name + '.net')
+#    print "Baseline loss = ", baseline_loss.item()
+
+    net = torch.load(save_full_name + '.net')
 
     #Query some input, output values
     train_output = net(train_adj, train_node_feat) 
     train_loss = reconstruction_loss(train_gt_data, train_output)
     print "Train loss = ", train_loss.item()
     
-#    net = torch.load(save_full_name + '.net')
 
     if val_flag == 1:
         val_output = net(val_adj, val_node_feat) 
@@ -279,11 +281,13 @@ def main():
         G = nx.DiGraph(train_adj[t].numpy())
         gt_values = train_gt_data[rand_ind].detach().numpy()
         network_values = train_output[rand_ind].detach().numpy()
-        if not os.path.exists(save_full_name + '_plots/train'):
-            os.makedirs(save_full_name + '_plots/train')
-        graph_filename = train_data[t][0]
-        draw(G, gt_values, network_values, save_full_name + '_plots/train/' + graph_filename)
+        print network_values
+    #    if not os.path.exists(save_full_name + '_plots/train'):
+    #        os.makedirs(save_full_name + '_plots/train')
+    #    graph_filename = train_data[t][0]
+    #    draw(G, gt_values, network_values, save_full_name + '_plots/train/' + graph_filename)
 
+    sys.exit()
     for t in range(10):
         rand_ind = random.randrange(0, 10)
         G = nx.DiGraph(val_adj[t].numpy())
