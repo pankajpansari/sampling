@@ -62,17 +62,18 @@ def reconstruction_loss(input, proposal):
     #Reconstruction loss - L2 difference between input and proposal 
     batch_size = input.size()[0]
     temp = input - proposal
-#    print input, proposal
-#    print torch.log(proposal)
-    eps = torch.zeros_like(proposal).fill_(1e-6)    #to avoid numerical issues in log
-    term1 = (input * torch.log(proposal + eps)).sum()
-    term2 = ((1 - input) * torch.log(1 - proposal + eps)).sum()
-
-    return -(term1 + term2)/batch_size
     l2_norms = torch.norm(temp, 2, 1)
 
     return ((l2_norms**2).sum())/batch_size
 
+def cross_entropy_loss(input, proposal):
+    #Cross-entropy loss between input and proposal 
+    batch_size = input.size()[0]
+    term1 = (input * torch.log(proposal + eps)).sum()
+    term2 = ((1 - input) * torch.log(1 - proposal + eps)).sum()
+
+    return -(term1 + term2)/batch_size
+    
 #network_file_list = ['/home/pankaj/Sampling/data/input/social_graphs/k_5/g_k_5_999-network.txt', '/home/pankaj/Sampling/data/input/social_graphs/k_5/g_k_5_998-network.txt']
 #batch_size = len(network_file_list) 
 def get_data(graph_dir, nNodes, gt_param):
@@ -214,7 +215,7 @@ def main():
     train_gt_data = get_ground_truth(train_data, 32)
     
     baseline_train_output = torch.Tensor([2.0/32]*32).repeat(train_size, 1)
-    baseline_loss = reconstruction_loss(train_gt_data, baseline_train_output)
+    baseline_loss = cross_entropy_loss(train_gt_data, baseline_train_output)
     print "Baseline loss = ", baseline_loss.item()
     
     
@@ -233,7 +234,7 @@ def main():
     
         train_output = net(train_adj, train_node_feat) 
     
-        train_loss = reconstruction_loss(train_gt_data, train_output)
+        train_loss = cross_entropy_loss(train_gt_data, train_output)
     
         train_loss.backward()
     
@@ -244,7 +245,7 @@ def main():
         
         if val_flag == 1:
             val_output = net(val_adj, val_node_feat) 
-            val_loss = reconstruction_loss(val_gt_data, val_output)
+            val_loss = cross_entropy_loss(val_gt_data, val_output)
     
             xp.Parent_Val.update(loss=val_loss)
             xp.Parent_Val.log()
@@ -267,7 +268,7 @@ def main():
 
     #Query some input, output values
     train_output = net(train_adj, train_node_feat) 
-    train_loss = reconstruction_loss(train_gt_data, train_output)
+    train_loss = cross_entropy_loss(train_gt_data, train_output)
     print "Train loss = ", train_loss.item()
     
 
