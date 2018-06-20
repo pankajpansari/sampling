@@ -6,7 +6,7 @@ import math
 
 #N_list = [6, 7, 8, 9, 10] #in log terms (that is, graph has math.pow(2, N) nodes)
 N_list = [32]
-p = 0.01
+p = 0.5
 num_fw_iter = 100
 #nsamples_mlr_list = [10, 100, 1000] #draw these many sets from x for multilinear relaxation
 nsamples_mlr_list = [100] 
@@ -19,7 +19,7 @@ for N in N_list:
     graph_dir = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/'
     file_list = os.listdir(graph_dir)
 
-    k = int(math.ceil(0.05*N)) #cardinality constraint
+    k = 9 #cardinality constraint
 
     for this_file in file_list:
         if 'log' not in this_file and 'gt' not in this_file:
