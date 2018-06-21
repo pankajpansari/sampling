@@ -108,20 +108,20 @@ class GraphScorer(nn.Module):
         output = g_score.expand_as(per_node_score) + per_node_score
 
         output_distribution = torch.sigmoid(output)
+        #Check again! (Divide by N?)
         factors = self.k/output_distribution.sum(dim = 1)
         normalised_output = torch.mul(output_distribution, factors.expand_as(output_distribution.t()).t())
 #        return normalised_output
-        return output_distribution
+        return output_distribution 
 
 class MyNet(nn.Module):
-    def __init__(self):
+    def __init__(self, k):
         super(MyNet, self).__init__()
         
         n_layer = 3
         p = 28
-        w_scale = 1e-4  
+        w_scale = 1e-2  
         extra_feat = 5
-        k = 2
         self.conv = GraphConv(n_layer, p, w_scale, extra_feat)
         self.scorer = GraphScorer(p, w_scale, k)
 

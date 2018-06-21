@@ -127,29 +127,33 @@ def variance_study():
 
     p = float(sys.argv[1])
 
-    f = open('log_p_' + str(p) + '.txt', 'w')
+    bufsize = 0
+    f = open('variance_study_p_' + str(p) + '.txt', 'w', bufsize)
 
-    N_list = [6, 7, 8, 9, 10]
     niter_list = [10, 100, 1000]
-    data_dir = '/home/pankaj/Sampling/data/input/social_graphs/k_'
     ngraphs = 4 
     nsamples = 5 
 
-    for N in N_list:
-        for iter_num in niter_list:
-            graph_dir = data_dir + str(N) + '/'
-            file_list = os.listdir(graph_dir)
-            for i in range(ngraphs):
-                G = read_graph(graph_dir + file_list[i])
-                for j in range(nsamples):
-                    sample = torch.rand(int(math.pow(2, N))) > 0.95
-                    for k in range(20):
-                        tic = time.clock()
-                        val = ic_model(G, sample, p, iter_num).item()
-                        toc = time.clock()
-                        to_write_list = [N, iter_num, i, j, k, val, toc - tic]
-                        print ' '.join(map(str, to_write_list)) + '\n'
-                        f.write(' '.join(map(str, to_write_list)) + '\n')
+    graph_dir = "/home/pankaj/Sampling/data/input/social_graphs/N_32/"
+
+    file_list = os.listdir(graph_dir)
+    graph_file_list = []
+
+    for i in range(30):
+        if 'log' not in file_list[i] and 'gt' not in file_list[i]:
+            graph_file_list.append(file_list[i])
+
+    for iter_num in niter_list:
+        for i in range(ngraphs):
+            G = read_graph(graph_dir + graph_file_list[i], 32)
+            for j in range(nsamples):
+                sample = torch.rand(32) > 0.7
+                val = []
+                for k in range(20):
+                    val.append(ic_model(G, sample, p, iter_num).item())
+                to_write_list = [iter_num, i, j, np.var(val)]
+                print ' '.join(map(str, to_write_list)) + '\n'
+                f.write(' '.join(map(str, to_write_list)) + '\n')
 
 def get_ground_truth(G, k, nsamples_mlr, num_fw_iter, p, num_influ_iter):
 
@@ -183,4 +187,4 @@ def main():
     print temp 
 
 if __name__ == '__main__':
-    main()
+    variance_study()

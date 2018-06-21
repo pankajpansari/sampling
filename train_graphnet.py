@@ -69,11 +69,34 @@ def reconstruction_loss(input, proposal):
 def cross_entropy_loss(input, proposal):
     #Cross-entropy loss between input and proposal 
     batch_size = input.size()[0]
+    eps = torch.zeros_like(proposal).fill_(1e-6)    #to avoid numerical issues in log
     term1 = (input * torch.log(proposal + eps)).sum()
     term2 = ((1 - input) * torch.log(1 - proposal + eps)).sum()
 
     return -(term1 + term2)/batch_size
     
+def kl_divergence(input, proposal):
+    #kl-divergence between input and proposal 
+    batch_size = input.size()[0]
+    eps = torch.zeros_like(proposal).fill_(1e-6)    #to avoid numerical issues in log
+    term1 = (input * torch.log(proposal + eps)).sum()
+    
+    for t in range(proposal.shape[0]):
+        assert(((1 - proposal[t] + eps[t]) <= 0).sum() == 0) 
+
+    term2 = ((1 - input) * torch.log(1 - proposal + eps)).sum()
+    term3 = (input * torch.log(input + eps)).sum()
+
+    assert(torch.isnan(input).sum().item() == 0)
+    assert(torch.isnan(proposal).sum().item() == 0)
+
+
+    assert(torch.isnan(term1).sum().item() == 0)
+    assert(torch.isnan(term2).sum().item() == 0)
+    assert(torch.isnan(term3).sum().item() == 0)
+
+    return -(term1 + term2 + term3)/batch_size
+ 
 #network_file_list = ['/home/pankaj/Sampling/data/input/social_graphs/k_5/g_k_5_999-network.txt', '/home/pankaj/Sampling/data/input/social_graphs/k_5/g_k_5_998-network.txt']
 #batch_size = len(network_file_list) 
 def get_data(graph_dir, nNodes, gt_param):
@@ -98,6 +121,7 @@ def get_ground_truth(data_list, nNodes):
         for line in f:
             ground_truth[t][count] = float(line)
             count += 1
+        assert(torch.isnan(ground_truth[t]).sum().item() == 0)
 
     f.close()
     return ground_truth
@@ -157,18 +181,42 @@ def get_node_feat(adjacency_list, nNodes):
  
     return node_feat
        
+def round_x(x, N, k):
+
+    assert(x.dim() == 2)
+    assert(x.shape[1] == N)
+
+    batch_size = x.shape[0]
+
+    #Round the optimum solution and get function values
+    rounded_x = torch.zeros_like(x)
+    sorted_ind = torch.sort(x, dim = 1, descending = True)[1][:, 0:k]
+
+    for i in range(batch_size):
+        rounded_x[i, sorted_ind[i]] = 1
+
+    return rounded_x
+
 def main():
 
     lr = float(sys.argv[1])
     mom = float(sys.argv[2])
-#    n_epochs = int(sys.argv[3])
-    n_epochs = 0 
+    n_epochs = int(sys.argv[3])
     total_size = 1000
     train_size = int(sys.argv[4])
+    val_size = total_size - train_size
     val_flag = int(sys.argv[5])
-    
-    #optimizer = optim.SGD(net.parameters(), lr=lr, momentum =mom)
-    net = MyNet()
+   
+    k = 9
+    net = MyNet(k)
+
+    for params in net.parameters():
+        params.requires_grad = True
+
+    loss = kl_divergence
+#    loss = reconstruction_loss 
+#    optimizer = optim.SGD(net.parameters(), lr=lr, momentum =mom)
+#    loss = cross_entropy_loss 
     optimizer = optim.Adam(net.parameters(), lr=lr)
     
     #----------------------------------------------------------
@@ -193,10 +241,9 @@ def main():
     xp.ParentWrapper(tag='baseline', name='parent', children=(xp.SimpleMetric(name='loss'),))
     
     xp.plotter.set_win_opts(name = 'loss', opts = {'title': 'cross-entropy loss'})
-    save_dir = '/home/pankaj/Sampling/data/working/14_06_2018/'
-    save_full_name = save_dir + 'training_lr_' + str(lr) + '_mom_' + str(mom) + '_tr_sz_' + str(train_size)
-    
-    gt_param = '2_100_100_0.01_100'
+    save_dir = '/home/pankaj/Sampling/data/working/21_06_2018/'
+    save_full_name = save_dir + 'training_lr_' + str(lr) + '_mom_' + str(mom) + '_tr_sz_' + str(train_size) + '_' + str(n_epochs)
+    gt_param = '9_100_100_0.5_100'
     all_data = get_data(graph_dir, 32, gt_param)
     
     data_size = len(all_data)
@@ -205,39 +252,55 @@ def main():
     #print train_data
     ind_list2 = [t for t in range(total_size) if t not in ind_list1]
     val_data = [all_data[ind] for ind in ind_list2]
-    
-    
+
     train_adj = get_adjacency(train_data, 32)
     train_node_feat = get_node_feat(train_adj, 32)
+
+    centrality_train = train_node_feat[:, :, 1]
+    factors = 1.0/centrality_train.sum(dim = 1)
+    normalised_train = torch.mul(centrality_train, factors.expand_as(centrality_train.t()).t())
     print "Got training data"
     
     
     train_gt_data = get_ground_truth(train_data, 32)
+    assert(torch.isnan(train_gt_data).sum().item() == 0)
     
-    baseline_train_output = torch.Tensor([2.0/32]*32).repeat(train_size, 1)
-    baseline_loss = cross_entropy_loss(train_gt_data, baseline_train_output)
-    print "Baseline loss = ", baseline_loss.item()
+    baseline_train_output = torch.Tensor([float(k)/32]*32).repeat(train_size, 1)
+    baseline_val_output = torch.Tensor([float(k)/32]*32).repeat(val_size, 1)
+
+    baseline_loss = loss(train_gt_data, baseline_train_output)
+    print "Baseline loss = ", baseline_loss
     
-    
+    baseline2_loss = loss(train_gt_data, centrality_train)
+#    print normalised_train[2:4]
+    print "Baseline2 loss = ", baseline2_loss
+
     if val_flag == 1:
         val_gt_data = get_ground_truth(val_data, 32)
         val_adj = get_adjacency(val_data, 32)
         val_node_feat = get_node_feat(val_adj, 32)
+        centrality_val = val_node_feat[:, :, 1]
         print "Got validation data"
     
     tic = time.time()
     
-    f = open(save_full_name + '_log.txt', 'w')
-    for epoch in range(n_epochs):
+    bufsize = 0
+#    f = open(save_full_name + '_log.txt', 'w', bufsize)
+
+    for epoch in range(0):
+#    for epoch in range(n_epochs):
         #get minibatch
         optimizer.zero_grad()   # zero the gradient buffers
     
         train_output = net(train_adj, train_node_feat) 
     
-        train_loss = cross_entropy_loss(train_gt_data, train_output)
+        train_loss = loss(train_gt_data, train_output)
     
         train_loss.backward()
     
+#        print net.scorer.t6.grad.data
+#        sys.exit()
+
         optimizer.step()    # Does the update
     
         xp.Parent_Train.update(loss=train_loss)
@@ -245,7 +308,7 @@ def main():
         
         if val_flag == 1:
             val_output = net(val_adj, val_node_feat) 
-            val_loss = cross_entropy_loss(val_gt_data, val_output)
+            val_loss = loss(val_gt_data, val_output)
     
             xp.Parent_Val.update(loss=val_loss)
             xp.Parent_Val.log()
@@ -263,18 +326,74 @@ def main():
 #    print "Training done.."
 #    torch.save(net, save_full_name + '.net')
 #    print "Baseline loss = ", baseline_loss.item()
-
+    
     net = torch.load(save_full_name + '.net')
 
-    #Query some input, output values
+    #Compare submodular values 
     train_output = net(train_adj, train_node_feat) 
-    train_loss = cross_entropy_loss(train_gt_data, train_output)
-    print "Train loss = ", train_loss.item()
-    
 
+    #Round and query submodular values for training set
+    train_output_rounded = round_x(train_output, 32, k)
+    train_gt_rounded = round_x(train_gt_data, 32, k)
+    baseline_rounded = round_x(baseline_train_output, 32, k)
+    baseline2_rounded = round_x(centrality_train, 32, k)
+
+    train_val = torch.zeros(train_size) 
+    gt_val = torch.zeros(train_size) 
+    baseline_val = torch.zeros(train_size) 
+    baseline2_val = torch.zeros(train_size) 
+
+    for i in range(train_size):
+        G = nx.DiGraph(train_adj[i].numpy())
+        train_val[i] = submodObj(G, train_output_rounded[i], 0.5, 100)
+        gt_val[i] = submodObj(G, train_gt_rounded[i], 0.5, 100)
+        baseline_val[i] = submodObj(G, baseline_rounded[i], 0.5, 100)
+        baseline2_val[i] = submodObj(G, baseline2_rounded[i], 0.5, 100)
+    #Query submodular values for ground-truth set
+
+    val_ratio = (train_val/gt_val).mean().item()
+    print "Network submodular function ratio (training): ", val_ratio 
+    val_ratio = (baseline_val/gt_val).mean().item()
+    print "Network submodular function ratio (baseline): ", val_ratio 
+
+    val_ratio = (baseline2_val/gt_val).mean().item()
+    print "Network submodular function ratio (baseline 2): ", val_ratio 
     if val_flag == 1:
+
+        val_output = net(val_adj, val_node_feat) 
+        #Compare submodular values 
         val_output = net(val_adj, val_node_feat) 
     
+        #Round and query submodular values for valing set
+        val_output_rounded = round_x(val_output, 32, k)
+        val_gt_rounded = round_x(val_gt_data, 32, k)
+        baseline_rounded = round_x(baseline_val_output, 32, k)
+        baseline2_rounded = round_x(centrality_val, 32, k)
+    
+        val_val = torch.zeros(val_size) 
+        gt_val = torch.zeros(val_size) 
+        baseline_val = torch.zeros(val_size) 
+        baseline2_val = torch.zeros(val_size) 
+    
+        for i in range(val_size):
+            G = nx.DiGraph(val_adj[i].numpy())
+            val_val[i] = submodObj(G, val_output_rounded[i], 0.5, 100)
+            gt_val[i] = submodObj(G, val_gt_rounded[i], 0.5, 100)
+            baseline_val[i] = submodObj(G, baseline_rounded[i], 0.5, 100)
+            baseline2_val[i] = submodObj(G, baseline2_rounded[i], 0.5, 100)
+        #Query submodular values for ground-truth set
+    
+        val_ratio = (val_val/gt_val).mean().item()
+        print "Network submodular function ratio (validataion): ", val_ratio 
+        val_ratio = (baseline_val/gt_val).mean().item()
+        print "Network submodular function ratio (baseline): ", val_ratio 
+
+        val_ratio = (baseline2_val/gt_val).mean().item()
+        print "Network submodular function ratio (baseline 2): ", val_ratio 
+    sys.exit()
+    
+
+   
     print '-'*50
     
     for t in range(10):
@@ -306,3 +425,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+#    test_round()
