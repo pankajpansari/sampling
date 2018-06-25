@@ -108,9 +108,9 @@ class GraphScorer(nn.Module):
         output = g_score.expand_as(per_node_score) + per_node_score
 
         output_distribution = torch.sigmoid(output)
-        #Check again! (Divide by N?)
-        factors = self.k/output_distribution.sum(dim = 1)
-        normalised_output = torch.mul(output_distribution, factors.expand_as(output_distribution.t()).t())
+#        #Check again! (Divide by N?)
+#        factors = self.k/output_distribution.sum(dim = 1)
+#        normalised_output = torch.mul(output_distribution, factors.expand_as(output_distribution.t()).t())
 #        return normalised_output
         return output_distribution 
 

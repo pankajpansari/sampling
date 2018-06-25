@@ -12,7 +12,7 @@ from torch.autograd import Variable
 
 random.seed(1234)
 
-dirw = "/home/pankaj/Sampling/data/working/19_06_2018/"
+dirw = "/home/pankaj/Sampling/data/working/22_06_2018/"
 
 class Influence(object):
     def __init__(self, G, p, niter):
@@ -126,28 +126,28 @@ def variance_study():
     #pick 10 samples at random
 
     p = float(sys.argv[1])
-
+    nNodes = 64
     bufsize = 0
-    f = open('variance_study_p_' + str(p) + '.txt', 'w', bufsize)
+    f = open('variance_study_p_' + str(p) + '_N_' + str(nNodes) + '.txt', 'w', bufsize)
 
     niter_list = [10, 100, 1000]
     ngraphs = 4 
     nsamples = 5 
 
-    graph_dir = "/home/pankaj/Sampling/data/input/social_graphs/N_32/"
+    graph_dir = "/home/pankaj/Sampling/data/input/social_graphs/N_64/"
 
     file_list = os.listdir(graph_dir)
     graph_file_list = []
 
-    for i in range(30):
+    for i in range(10):
         if 'log' not in file_list[i] and 'gt' not in file_list[i]:
             graph_file_list.append(file_list[i])
 
     for iter_num in niter_list:
         for i in range(ngraphs):
-            G = read_graph(graph_dir + graph_file_list[i], 32)
+            G = read_graph(graph_dir + graph_file_list[i], nNodes)
             for j in range(nsamples):
-                sample = torch.rand(32) > 0.7
+                sample = torch.rand(nNodes) > 0.8
                 val = []
                 for k in range(20):
                     val.append(ic_model(G, sample, p, iter_num).item())
@@ -172,9 +172,9 @@ def get_ground_truth(G, k, nsamples_mlr, num_fw_iter, p, num_influ_iter):
     #Compare with 10 randomly drawn k-pairs
 
 def main():
-    filename = "/home/pankaj/Sampling/data/input/social_graphs/N_32/g_N_32_410.txt"
+    filename = "/home/pankaj/Sampling/data/input/social_graphs/N_64/g_N_32_410.txt"
+    nNodes = 64 
     G = read_graph(filename, 32)
-    nNodes = 32
     k = 25
     nodes = range(nNodes)
     sample = torch.zeros(nNodes)

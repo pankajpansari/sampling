@@ -116,10 +116,11 @@ def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter):
 
 #    print "Number of cache hits = ", influ_obj.cache_hits
 
-    f = open(file_prefix + '_gt.txt', 'w')
-    for x_t in x:
-        f.write(str(x_t.item()) + '\n')
-    f.close()
+    return x
+#    f = open(file_prefix + '_gt.txt', 'w')
+#    for x_t in x:
+#        f.write(str(x_t.item()) + '\n')
+#    f.close()
 
 def main():
     grad = torch.randn(10)

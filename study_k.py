@@ -14,7 +14,7 @@ from frank_wolfe import runFrankWolfe
 
 random.seed(1234)
 
-dirw = "/home/pankaj/Sampling/data/working/19_06_2018/"
+dirw = "/home/pankaj/Sampling/data/working/22_06_2018/"
 
 def select_random_k_pair(G, k, nNodes, nRandom, p, num_influ_iter):
 
@@ -53,6 +53,7 @@ def study_k_effect(filename, k, p, num_influ_iter, nsample_mlr, num_fw_iter, res
     f = open(filename, 'rU')
 
     G = nx.DiGraph()
+    N = G.number_of_nodes()
 
     for line in f:
         if line.find('Nodes') != -1:
@@ -68,22 +69,21 @@ def study_k_effect(filename, k, p, num_influ_iter, nsample_mlr, num_fw_iter, res
         to_id = int(line.split()[1])
         G.add_edge(from_id, to_id)
 
-    N = 32
     random_val = select_random_k_pair(G, k, N, 5, p, num_influ_iter) 
     gt_val = get_ground_truth(G, k, nsample_mlr, num_fw_iter, p, num_influ_iter).item()
     results.append((i, k, gt_val, random_val))
 
 def main():
 
-    graph_dir = "/home/pankaj/Sampling/data/input/social_graphs/N_32/"
+    graph_dir = "/home/pankaj/Sampling/data/input/social_graphs/N_64/"
     file_list = os.listdir(graph_dir)
     graph_file_list = []
 
-    for i in range(30):
+    for i in range(10):
         if 'log' not in file_list[i] and 'gt' not in file_list[i]:
             graph_file_list.append(file_list[i])
     
-    N = 32
+    N = 64 
     p = float(sys.argv[1]) 
     num_influ_iter = 100
     nsample_mlr = 100
@@ -101,7 +101,7 @@ def main():
         filename = graph_dir + graph_file_list[i] 
         results = []
 
-        for k in range(1, 26):
+        for k in range(1, 64, 5):
             print i, k
             study_k_effect(filename, k, p, num_influ_iter, nsample_mlr, num_fw_iter, results, i)
 
