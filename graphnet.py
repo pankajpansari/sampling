@@ -10,7 +10,7 @@ class GraphConvLayer(nn.Module):
         self.p = p
         self.w_std = w_std
 
-        num_node_feat = 1 + extra_feat_size
+        num_node_feat = 3 + extra_feat_size
         self.num_edge_feat = 1
         self.t1 = nn.Parameter(torch.Tensor(self.p, num_node_feat))
         self.t2 = nn.Parameter(torch.Tensor(self.p, self.p))
@@ -48,21 +48,26 @@ class GraphConv(nn.Module):
         for i in range(n_layer):
             self.layers.add_module(str(i), GraphConvLayer(p, w_std, extra_feat_size))
 
-    def forward(self, adjacency, extra_feat):
+    def forward(self, x, adjacency, extra_feat):
         assert(adjacency.ndimension() == 3)
+        assert(x.ndimension() == 2)
 
         batch_size = adjacency.size(0)
         n_node = adjacency.size(1)
 
-        # Add a bias term to node features
         to_stack = []
         to_stack.append(Variable(torch.ones(batch_size, n_node)))
+        to_stack.append(x)
+        to_stack.append(1 - x)
+
         assert(extra_feat.ndimension() == 3)
         assert(extra_feat.size(2) == self.extra_feat_size)
+
         for i in range(extra_feat.size(2)):
             to_stack.append(extra_feat.select(2, i))
 
         node_feat = torch.stack(to_stack, 1).float()
+
         edge_feat = Variable(torch.ones(batch_size, n_node, n_node))
 
         # Bias term only as edge features
@@ -125,8 +130,8 @@ class MyNet(nn.Module):
         self.conv = GraphConv(n_layer, p, w_scale, extra_feat)
         self.scorer = GraphScorer(p, w_scale, k)
 
-    def forward(self, adjacency, extra, choice=None):
-        mu = self.conv(adjacency, extra)
+    def forward(self, x, adjacency, extra, choice=None):
+        mu = self.conv(x, adjacency, extra)
         scores = self.scorer(mu)
         return scores
 

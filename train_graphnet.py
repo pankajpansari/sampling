@@ -23,37 +23,60 @@ np.random.seed(123)
 torch.set_printoptions(precision = 2)
 torch.manual_seed(123)
 
-def reconstruction_loss(input, proposal):
-    #Reconstruction loss - L2 difference between input and proposal 
-    batch_size = input.size()[0]
-    temp = input - proposal
+def reconstruction_loss(x, y):
+    #Reconstruction loss - L2 difference between x and y 
+    batch_size = x.size()[0]
+    temp = x - y
     l2_norms = torch.norm(temp, 2, 1)
 
     return ((l2_norms**2).sum())/batch_size
 
-def cross_entropy_loss(input, proposal):
-    #Cross-entropy loss between input and proposal 
-    batch_size = input.size()[0]
-    eps = torch.zeros_like(proposal).fill_(1e-6)    #to avoid numerical issues in log
-    term1 = (input * torch.log(proposal + eps)).sum()
-    term2 = ((1 - input) * torch.log(1 - proposal + eps)).sum()
+def kl_loss_mc_x(x, y, adj, nsamples, influ_obj):
+    #Sampling from x distribution
+    batch_size = x.size()[0]
+    obj = Variable(torch.FloatTensor([0]*batch_size)) 
+
+    assert(adj.dim() == 3)
+    assert(x.dim() == 2)
+    assert(y.dim() == 2)
+
+    for t in range(batch_size):
+        y_t = y[t, :].unsqueeze(0)
+        x_t = x[t, :].unsqueeze(0)
+        obj_t = Variable(torch.FloatTensor([0])) 
+        for p in range(nsamples):
+            #draw a sample/set from the uniform distribution
+            sample = Variable(torch.bernoulli(x_t.squeeze().data))
+            val = torch.abs(influ_obj(sample.numpy()))
+            xP = getProb(sample, x_t)
+            yP = getProb(sample, y_t)
+            obj_t += (yP/xP)*(torch.log(yP) - torch.log(torch.abs(val)*xP))
+        obj[t] = obj_t/nsamples
+    return obj.mean()
+
+def cross_entropy_loss(x, y):
+    #Cross-entropy loss between x and y 
+    batch_size = x.size()[0]
+    eps = torch.zeros_like(y).fill_(1e-6)    #to avoid numerical issues in log
+    term1 = (x * torch.log(y + eps)).sum()
+    term2 = ((1 - x) * torch.log(1 - y + eps)).sum()
 
     return -(term1 + term2)/batch_size
     
-def kl_divergence(input, proposal):
-    #kl-divergence between input and proposal 
-    batch_size = input.size()[0]
-    eps = torch.zeros_like(proposal).fill_(1e-6)    #to avoid numerical issues in log
-    term1 = (input * torch.log(proposal + eps)).sum()
+def kl_divergence(x, y):
+    #kl-divergence between x and y 
+    batch_size = x.size()[0]
+    eps = torch.zeros_like(y).fill_(1e-6)    #to avoid numerical issues in log
+    term1 = (x * torch.log(y + eps)).sum()
     
-    for t in range(proposal.shape[0]):
-        assert(((1 - proposal[t] + eps[t]) <= 0).sum() == 0) 
+    for t in range(y.shape[0]):
+        assert(((1 - y[t] + eps[t]) <= 0).sum() == 0) 
 
-    term2 = ((1 - input) * torch.log(1 - proposal + eps)).sum()
-    term3 = (input * torch.log(input + eps)).sum()
+    term2 = ((1 - x) * torch.log(1 - y + eps)).sum()
+    term3 = (x * torch.log(x + eps)).sum()
 
-    assert(torch.isnan(input).sum().item() == 0)
-    assert(torch.isnan(proposal).sum().item() == 0)
+    assert(torch.isnan(x).sum().item() == 0)
+    assert(torch.isnan(y).sum().item() == 0)
     assert(torch.isnan(term1).sum().item() == 0)
     assert(torch.isnan(term2).sum().item() == 0)
     assert(torch.isnan(term3).sum().item() == 0)
@@ -321,12 +344,10 @@ def main():
         print "Validation data ratios"
         get_submodular_ratio(net, val_adj, val_node_feat, val_gt_data, k, loss)
     print "Test data ratios"
-    get_submodular_ratio(net, test_adj, test_node_feat, test_gt_data, k, loss)
+    get_submodular_ratio(net, test_adj, test_node_feat, test_gt_data, 9, loss)
 
     f.close()
 
-
-    print "Network submodular function ratio (baseline 2): ", val_ratio 
 if __name__ == '__main__':
     main()
 #    test_round()
