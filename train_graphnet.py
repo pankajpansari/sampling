@@ -31,29 +31,6 @@ def reconstruction_loss(x, y):
 
     return ((l2_norms**2).sum())/batch_size
 
-def kl_loss_mc_x(x, y, adj, nsamples, influ_obj):
-    #Sampling from x distribution
-    batch_size = x.size()[0]
-    obj = Variable(torch.FloatTensor([0]*batch_size)) 
-
-    assert(adj.dim() == 3)
-    assert(x.dim() == 2)
-    assert(y.dim() == 2)
-
-    for t in range(batch_size):
-        y_t = y[t, :].unsqueeze(0)
-        x_t = x[t, :].unsqueeze(0)
-        obj_t = Variable(torch.FloatTensor([0])) 
-        for p in range(nsamples):
-            #draw a sample/set from the uniform distribution
-            sample = Variable(torch.bernoulli(x_t.squeeze().data))
-            val = torch.abs(influ_obj(sample.numpy()))
-            xP = getProb(sample, x_t)
-            yP = getProb(sample, y_t)
-            obj_t += (yP/xP)*(torch.log(yP) - torch.log(torch.abs(val)*xP))
-        obj[t] = obj_t/nsamples
-    return obj.mean()
-
 def cross_entropy_loss(x, y):
     #Cross-entropy loss between x and y 
     batch_size = x.size()[0]
@@ -252,7 +229,6 @@ def main():
 
     loss = kl_divergence
     optimizer = optim.Adam(net.parameters(), lr=lr)
-    
    
     save_dir = '/home/pankaj/Sampling/data/working/25_06_2018/'
     save_full_name = save_dir + 'training_lr_' + str(lr) + '_mom_' + str(mom) + '_tr_sz_' + str(train_size) + '_' + str(n_epochs)
