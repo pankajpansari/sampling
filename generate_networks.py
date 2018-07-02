@@ -8,7 +8,7 @@ seed_m = np.array([[0.8, 0.7], [0.5, 0.3]])
 seed_text = '"' + str(seed_m[0, 0]) + ' ' + str(seed_m[0, 1]) + '; ' + str(seed_m[1, 0]) + ' ' + str(seed_m[1, 1]) + '"'
 seed_value = 123
 num_graphs = 1000 
-logN_list = [6]
+logN_list = [7, 8]
 
 FNULL = open(os.devnull, 'w')
 for logN in logN_list: 
