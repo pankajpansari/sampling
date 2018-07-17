@@ -51,12 +51,13 @@ def main():
 
     tic = time.clock()
     parser = argparse.ArgumentParser(description='Generating ground truth for given graph using Frank-Wolfe')
-    parser.add_argument('filename', help='Full path the graph file', type=str)
+    parser.add_argument('filename', help='Full path of the graph file', type=str)
     parser.add_argument('k', help='Cardinality constraint', type=int)
     parser.add_argument('nsamples_mlr', help='Number of samples for multilinear relaxation estimation', type=int)
     parser.add_argument('num_fw_iter', help='Number of iterations of Frank-Wolfe', type=int)
     parser.add_argument('p', help='Propagation probability for diffusion model', type=float)
     parser.add_argument('num_influ_iter', help='Number of iterations of independent-cascade diffusion', type=int)
+
     args = parser.parse_args()
     
     filename = args.filename

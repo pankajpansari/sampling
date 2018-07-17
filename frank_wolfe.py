@@ -25,7 +25,7 @@ def herd_points(probs, num):
 
 def getRelax(G, x, nsamples, influ_obj, herd = True): 
 
-    current_sum = Variable(torch.FloatTensor([0]), requires_grad = True) 
+    current_sum = Variable(torch.FloatTensor([0]), requires_grad = False) 
 
     if herd:
         samples_list = herd_points(x, nsamples) 
