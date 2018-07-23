@@ -10,11 +10,13 @@ import itertools as it
 import matplotlib.pyplot as plt
 from torch.autograd import Variable
 from influence import ic_model
+from influence import Influence 
 from frank_wolfe import runFrankWolfe
+from frank_wolfe import getRelax
 
 random.seed(1234)
 
-dirw = "/home/pankaj/Sampling/data/working/17_07_2018/"
+dirw = "/home/pankaj/Sampling/data/working/23_07_2018/"
 
 def select_random_k_pair(G, k, nNodes, nRandom, p, num_influ_iter):
 
@@ -165,7 +167,7 @@ def variance_study():
                 print ' '.join(map(str, to_write_list)) + '\n'
                 f.write(' '.join(map(str, to_write_list)) + '\n')
 
-def variance_study_parallel():
+def influence_variance_study_parallel():
 
     p = float(sys.argv[1])
     file_id = int(sys.argv[2])
@@ -207,6 +209,44 @@ def variance_study_parallel():
         print ' '.join(map(str, to_write_list)) + '\n'
         f.write(' '.join(map(str, to_write_list)) + '\n')
 
+def multilinear_variance_study():
+
+    file_id = int(sys.argv[1])
+    nsamples = int(sys.argv[2])
+    nNodes = 512 
+    bufsize = 0
+    p = 0.4 
+    num_influ_iter = 100
+
+    f = open(dirw + 'multilinear_variance_study_p_' + str(p) + '_N_' + str(nNodes) + '_' + str(file_id) + '_' + str(nsamples) +'.txt', 'w', bufsize)
+
+    ngraphs = 10 
+    graph_dir = "/home/pankaj/Sampling/data/input/social_graphs/N_" + str(nNodes) + "/"
+
+    file_list = os.listdir(graph_dir)
+    graph_file_list = []
+
+    for i in range(ngraphs):
+        if 'log' not in file_list[i] and 'gt' not in file_list[i]:
+            graph_file_list.append(file_list[i])
+
+    G = read_graph(graph_dir + graph_file_list[file_id], nNodes)
+
+    influ_obj = Influence(G, p, num_influ_iter)
+
+    for t in range(4):
+        x = torch.rand(nNodes)
+        val = []
+        tic = time.clock()
+
+        for k in range(20):
+            val.append(getRelax(G, x, nsamples, influ_obj, herd = False).item())
+
+        to_write_list = [file_id, np.var(val), (time.clock() - tic)/20]
+        print ' '.join(map(str, to_write_list)) + '\n'
+        sys.stdout.flush()
+        f.write(' '.join(map(str, to_write_list)) + '\n')
+
 def p_study():
 
     p = float(sys.argv[1])
@@ -240,8 +280,6 @@ def p_study():
             print ' '.join(map(str, to_write_list)) + '\n'
             f.write(' '.join(map(str, to_write_list)) + '\n')
 
-
-
 def main():
 
     nNodes = 1024 
@@ -264,7 +302,6 @@ def main():
     f = open(dirw + 'log_k_study_' + param_string + '.txt', 'w', bufsize)
 
     for i in range(len(graph_file_list)):
-#    for i in range(2):
         
         filename = graph_dir + graph_file_list[i] 
         results = []
@@ -278,6 +315,5 @@ def main():
     f.close()
 
 if __name__ == '__main__':
-    variance_study_parallel()
-
-
+#    influence_variance_study_parallel()
+    multilinear_variance_study() 
