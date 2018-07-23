@@ -30,8 +30,6 @@ def select_random_k_pair(G, k, nNodes, nRandom, p, num_influ_iter):
 
         temp = ic_model(G, sample, p, num_influ_iter).item()
         val_list.append(temp)
-#    print "Random function values = ", val_list
-#    print "Random max = ", np.max(val_list)
     return np.max(val_list)
 
 def get_ground_truth(G, k, nsamples_mlr, num_fw_iter, p, num_influ_iter):
@@ -49,31 +47,6 @@ def get_ground_truth(G, k, nsamples_mlr, num_fw_iter, p, num_influ_iter):
 #    print x_opt, top_k
     return ic_model(G, top_k, p, num_influ_iter)
     #Compare with 10 randomly drawn k-pairs
-
-def study_k_effect(filename, k, p, num_influ_iter, nsample_mlr, num_fw_iter, results, i):
-
-    f = open(filename, 'rU')
-
-    G = nx.DiGraph()
-    N = G.number_of_nodes()
-
-    for line in f:
-        if line.find('Nodes') != -1:
-            N = int(line.split(' ')[2])
-            G.add_nodes_from(range(N))
-            break
-
-    for _ in range(1):
-        next(f)
-
-    for line in f:
-        from_id = int(line.split()[0])
-        to_id = int(line.split()[1])
-        G.add_edge(from_id, to_id)
-
-    random_val = select_random_k_pair(G, k, N, 5, p, num_influ_iter) 
-    gt_val = get_ground_truth(G, k, nsample_mlr, num_fw_iter, p, num_influ_iter).item()
-    results.append((i, k, gt_val, random_val))
 
 def read_graph(filename, nNodes):
 
@@ -247,6 +220,39 @@ def multilinear_variance_study():
         sys.stdout.flush()
         f.write(' '.join(map(str, to_write_list)) + '\n')
 
+def study_k_effect():
+
+    file_id = int(sys.argv[1])
+    k = int(sys.argv[2])
+    num_influ_iter = 100
+    nsample_mlr = 10
+    num_fw_iter = 100
+
+    nNodes = 512
+    bufsize = 0
+    p = 0.4 
+
+    f = open(dirw + 'study_k_effect_p_' + str(p) + '_N_' + str(nNodes) + '_' + str(file_id) + '_' + str(num_influ_iter) + '_' + str(nsample_mlr) + '.txt', 'w', bufsize)
+
+    ngraphs = 10 
+    graph_dir = "/home/pankaj/Sampling/data/input/social_graphs/N_" + str(nNodes) + "/"
+
+    file_list = os.listdir(graph_dir)
+    graph_file_list = []
+
+    for i in range(ngraphs):
+        if 'log' not in file_list[i] and 'gt' not in file_list[i]:
+            graph_file_list.append(file_list[i])
+
+    G = read_graph(graph_dir + graph_file_list[file_id], nNodes)
+
+    random_val = select_random_k_pair(G, k, nNodes, 10, p, num_influ_iter) 
+    gt_val = get_ground_truth(G, k, nsample_mlr, num_fw_iter, p, num_influ_iter).item()
+    to_write_list = [file_id, k, gt_val, random_val]
+    print ' '.join(map(str, to_write_list)) + '\n'
+    sys.stdout.flush()
+    f.write(' '.join(map(str, to_write_list)) + '\n')
+
 def p_study():
 
     p = float(sys.argv[1])
@@ -316,4 +322,5 @@ def main():
 
 if __name__ == '__main__':
 #    influence_variance_study_parallel()
-    multilinear_variance_study() 
+#    multilinear_variance_study() 
+    study_k_effect()
