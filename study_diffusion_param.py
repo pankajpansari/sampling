@@ -232,7 +232,7 @@ def study_k_effect():
     bufsize = 0
     p = 0.4 
 
-    f = open(dirw + 'study_k_effect_p_' + str(p) + '_N_' + str(nNodes) + '_' + str(file_id) + '_' + str(num_influ_iter) + '_' + str(nsample_mlr) + '.txt', 'w', bufsize)
+    f = open(dirw + 'study_k_effect_id_' + str(file_id) + '_k_' + str(k) + '_' + str(p) + '_' + str(nNodes) + '_' + str(num_influ_iter) + '_' + str(nsample_mlr) + '.txt', 'w', bufsize)
 
     ngraphs = 10 
     graph_dir = "/home/pankaj/Sampling/data/input/social_graphs/N_" + str(nNodes) + "/"

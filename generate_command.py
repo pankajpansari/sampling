@@ -32,14 +32,27 @@ def command_ground_truth():
     f.close()
 
 def command_variance():
-    p_list = [0.2, 0.4]
-    id_list = range(10)
+    id_list = range(5)
+    nsamples_list = [10, 100, 1000, 10000]
     command_file = 'jobsQueued.txt'
     f = open(command_file, 'w')
-    for p in p_list:
+    for nsamples in nsamples_list:
         for i in id_list:
-#            print 'python study_diffusion_param.py ' + str(p) + ' ' + str(i)
-            f.write('python study_diffusion_param.py ' + str(p) + ' ' + str(i) + '\n') 
+           print 'python study_diffusion_param.py ' + str(i) + ' ' + str(nsamples)
+           f.write('python study_diffusion_param.py ' + str(i) + ' ' + str(nsamples) + '\n')
+#           f.write('python study_diffusion_param.py ' + str(p) + ' ' + str(i) + '\n') 
 #
+def study_k_command():
+    id_list = range(5)
+    k_list = range(20, 300, 50)
+    nsamples = 10
+    command_file = 'jobsQueued.txt'
+    f = open(command_file, 'w')
+    for k in k_list:
+        for i in id_list:
+           print 'python study_diffusion_param.py ' + str(i) + ' ' + str(k)
+           f.write('python study_diffusion_param.py ' + str(i) + ' ' + str(k) + '\n')
+#           f.write('python study_diffusion_param.py ' + str(p) + ' ' + str(i) + '\n') 
+
 if __name__ == '__main__':
-    command_variance()
+    study_k_command()
