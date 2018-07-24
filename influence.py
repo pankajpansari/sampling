@@ -21,22 +21,30 @@ class Influence(object):
         self.G = G
         self.niter = niter 
         self.p = p 
+        #Number of evals on per iteration basis
+        self.itr_total = 0
+        self.itr_new = 0
+        self.itr_cache = 0
 
-    def reset(self):
+    def cache_reset(self):
         self.cache.reset()
         self.cache_hits = 0
 
+    def counter_reset(self):
+        self.itr_total = 0
+        self.itr_new = 0
+        self.itr_cache = 0
+
     def __call__(self, sample):
 
-#        one_hot = sample.byte() 
         key = sample.tobytes()
-
-#        val = ic_model(self.G, sample)
-#        self.cache[key] = val
+        self.itr_total += 1 
         if key not in self.cache:
+            self.itr_new += 1 
             val = ic_model(self.G, sample, self.p, self.niter)
             self.cache[key] = val
         else:
+            self.itr_cache += 1 
             self.cache_hits += 1
 
         return self.cache[key]
@@ -58,7 +66,7 @@ def ic_model(G, sample, p, iterations):
                     if neighbor not in S:       
                         S.append(neighbor)
         avg_influence = avg_influence + (float(len(S))/iterations) 
-#    print 'Total influence:',int(round(avg_influence.item()))
+
     return avg_influence
 
 def main():

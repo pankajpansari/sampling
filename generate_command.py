@@ -6,11 +6,11 @@ import math
 
 def command_ground_truth():
     #N_list = [6, 7, 8, 9, 10] #in log terms (that is, graph has math.pow(2, N) nodes)
-    N_list = [32]
-    p = 0.5
+    N_list = [512]
+    p = 0.4
     num_fw_iter = 100
     #nsamples_mlr_list = [10, 100, 1000] #draw these many sets from x for multilinear relaxation
-    nsamples_mlr_list = [100] 
+    nsamples_mlr_list = [10] 
     num_influ_iter_list = [100]
 
     #graph_dir = '/home/pankaj/Sampling/data/input/social_graphs/k_' + str(N) + '/'
@@ -20,7 +20,7 @@ def command_ground_truth():
         graph_dir = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/'
         file_list = os.listdir(graph_dir)
 
-        k = 9 #cardinality constraint
+        k = 20 #cardinality constraint
 
         for this_file in file_list:
             if 'log' not in this_file and 'gt' not in this_file:
@@ -40,8 +40,7 @@ def command_variance():
         for i in id_list:
            print 'python study_diffusion_param.py ' + str(i) + ' ' + str(nsamples)
            f.write('python study_diffusion_param.py ' + str(i) + ' ' + str(nsamples) + '\n')
-#           f.write('python study_diffusion_param.py ' + str(p) + ' ' + str(i) + '\n') 
-#
+
 def study_k_command():
     id_list = range(5)
     k_list = range(20, 300, 50)
@@ -52,7 +51,7 @@ def study_k_command():
         for i in id_list:
            print 'python study_diffusion_param.py ' + str(i) + ' ' + str(k)
            f.write('python study_diffusion_param.py ' + str(i) + ' ' + str(k) + '\n')
-#           f.write('python study_diffusion_param.py ' + str(p) + ' ' + str(i) + '\n') 
 
 if __name__ == '__main__':
-    study_k_command()
+#    study_k_command()
+    command_ground_truth()

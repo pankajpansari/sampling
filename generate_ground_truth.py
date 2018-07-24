@@ -38,14 +38,21 @@ def get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter):
     file_prefix = filename[0:ind] + '_' + str(k) + '_' + str(nsamples_mlr) + '_' + str(num_fw_iter) + '_' + str(p) + '_' + str(num_influ_iter) 
     x_opt = runFrankWolfe(G, nsamples_mlr, k, file_prefix, num_fw_iter, p, num_influ_iter)
 
-#    #Round the optimum solution and get function values
-#    top_k = Variable(torch.zeros(N)) #conditional grad
-#    sorted_ind = torch.sort(x_opt, descending = True)[1][0:k]
-#    top_k[sorted_ind] = 1
-#
-##    print x_opt, top_k
-#    return submodObj(G, top_k, p, num_influ_iter)
-#    #Compare with 10 randomly drawn k-pairs
+    #Round the optimum solution and get function values
+    top_k = Variable(torch.zeros(N)) #conditional grad
+    sorted_ind = torch.sort(x_opt, descending = True)[1][0:k]
+    top_k[sorted_ind] = 1
+    gt_val = submodObj(G, top_k, p, num_influ_iter)
+
+    #Save optimum solution and value
+
+    f = open(file_prefix + '_gt.txt', 'w')
+    f.write(str(gt_val.item()) + '\n')
+    for x_t in x_opt:
+        f.write(str(x_t.item()) + '\n')
+    f.close()
+
+
 
 def main():
 

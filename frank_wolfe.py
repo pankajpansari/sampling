@@ -23,7 +23,7 @@ def herd_points(probs, num):
 
     return x.float()
 
-def getRelax(G, x, nsamples, influ_obj, herd = True): 
+def getRelax(G, x, nsamples, influ_obj, herd = False): 
 
     current_sum = Variable(torch.FloatTensor([0]), requires_grad = False) 
 
@@ -50,7 +50,7 @@ def getCondGrad(grad, k):
 #    return top_k_positive 
     return top_k
 
-def getGrad(G, x, nsamples, influ_obj, herd = True):
+def getGrad(G, x, nsamples, influ_obj, herd = False):
 
     #Returns the gradient vector of the multilinear relaxation at x as given in Chekuri's paper
     #(See Theorem 1 in nips2012 paper)
@@ -89,11 +89,14 @@ def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter):
     iter_num = 0
     obj = getRelax(G, x, nsamples, influ_obj)
     toc = time.clock()
-    print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic)
 
-    f.write(str(toc - tic) + " " + str(obj.item()) + "\n")
+    print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic),  "   Total/New/Cache: ", influ_obj.itr_total , influ_obj.itr_new , influ_obj.itr_cache
+
+    f.write(str(toc - tic) + " " + str(obj.item()) + " " + str(influ_obj.itr_total) + '/' + str(influ_obj.itr_new) + '/' + str(influ_obj.itr_cache) + "\n") 
 
     for iter_num in np.arange(1, num_fw_iter):
+
+        influ_obj.counter_reset()
 
         grad = getGrad(G, x, nsamples, influ_obj)
 
@@ -107,20 +110,13 @@ def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter):
         
         toc = time.clock()
 
-        print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic)
+        print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic),  "   Total/New/Cache: ", influ_obj.itr_total , influ_obj.itr_new , influ_obj.itr_cache
 
-#        print sys.getsizeof(influ_obj.cache)
-        f.write(str(toc - tic) + " " + str(obj.item()) + "\n")
+        f.write(str(toc - tic) + " " + str(obj.item()) + " " + str(influ_obj.itr_total) + '/' + str(influ_obj.itr_new) + '/' + str(influ_obj.itr_cache) + "\n") 
 
     f.close()
 
-#    print "Number of cache hits = ", influ_obj.cache_hits
-
     return x
-#    f = open(file_prefix + '_gt.txt', 'w')
-#    for x_t in x:
-#        f.write(str(x_t.item()) + '\n')
-#    f.close()
 
 def main():
     grad = torch.randn(10)
