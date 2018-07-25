@@ -23,11 +23,11 @@ def herd_points(probs, num):
 
     return x.float()
 
-def getRelax(G, x, nsamples, influ_obj, herd = False): 
+def getRelax(G, x, nsamples, influ_obj, herd): 
 
     current_sum = Variable(torch.FloatTensor([0]), requires_grad = False) 
 
-    if herd:
+    if herd == 1:
         samples_list = herd_points(x, nsamples) 
     else:
         samples_list = Variable(torch.bernoulli(x.repeat(nsamples, 1)))
@@ -50,7 +50,7 @@ def getCondGrad(grad, k):
 #    return top_k_positive 
     return top_k
 
-def getGrad(G, x, nsamples, influ_obj, herd = False):
+def getGrad(G, x, nsamples, influ_obj, herd):
 
     #Returns the gradient vector of the multilinear relaxation at x as given in Chekuri's paper
     #(See Theorem 1 in nips2012 paper)
@@ -58,7 +58,7 @@ def getGrad(G, x, nsamples, influ_obj, herd = False):
     N = G.number_of_nodes()
     grad = Variable(torch.zeros(N))
 
-    if herd:
+    if herd == 1: 
         samples_list = herd_points(x, nsamples) 
     else:
         samples_list = Variable(torch.bernoulli(x.repeat(nsamples, 1)))
@@ -73,7 +73,7 @@ def getGrad(G, x, nsamples, influ_obj, herd = False):
     return grad
 
 
-def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter):
+def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter, if_herd):
 
     N = nx.number_of_nodes(G)
 
@@ -87,7 +87,7 @@ def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter):
     tic = time.clock()
 
     iter_num = 0
-    obj = getRelax(G, x, nsamples, influ_obj)
+    obj = getRelax(G, x, nsamples, influ_obj, if_herd)
     toc = time.clock()
 
     print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic),  "   Total/New/Cache: ", influ_obj.itr_total , influ_obj.itr_new , influ_obj.itr_cache
@@ -98,7 +98,7 @@ def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter):
 
         influ_obj.counter_reset()
 
-        grad = getGrad(G, x, nsamples, influ_obj)
+        grad = getGrad(G, x, nsamples, influ_obj, if_herd)
 
         x_star = getCondGrad(grad, k)
 
@@ -106,7 +106,7 @@ def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter):
 
         x = step*x_star + (1 - step)*x
 
-        obj = getRelax(G, x, nsamples, influ_obj)
+        obj = getRelax(G, x, nsamples, influ_obj, if_herd)
         
         toc = time.clock()
 

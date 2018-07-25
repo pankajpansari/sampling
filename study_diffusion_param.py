@@ -51,7 +51,6 @@ def get_ground_truth(G, k, nsamples_mlr, num_fw_iter, p, num_influ_iter):
 def read_graph(filename, nNodes):
 
     f = open(filename, 'rU')
-    print filename
     adj = np.zeros((nNodes, nNodes))
 
     for line in f:

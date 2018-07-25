@@ -12,7 +12,7 @@ np.random.seed(1234)
 torch.manual_seed(1234) 
 
 
-def get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter):
+def get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd):
 
     f = open(filename, 'rU')
 
@@ -35,8 +35,10 @@ def get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter):
     N = nx.number_of_nodes(G)
 
     ind = filename.find('.')
-    file_prefix = filename[0:ind] + '_' + str(k) + '_' + str(nsamples_mlr) + '_' + str(num_fw_iter) + '_' + str(p) + '_' + str(num_influ_iter) 
-    x_opt = runFrankWolfe(G, nsamples_mlr, k, file_prefix, num_fw_iter, p, num_influ_iter)
+
+    file_prefix = '_'.join(str(x) for x in [filename[0:ind], k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd])
+
+    x_opt = runFrankWolfe(G, nsamples_mlr, k, file_prefix, num_fw_iter, p, num_influ_iter, if_herd)
 
     #Round the optimum solution and get function values
     top_k = Variable(torch.zeros(N)) #conditional grad
@@ -52,8 +54,6 @@ def get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter):
         f.write(str(x_t.item()) + '\n')
     f.close()
 
-
-
 def main():
 
     tic = time.clock()
@@ -64,6 +64,7 @@ def main():
     parser.add_argument('num_fw_iter', help='Number of iterations of Frank-Wolfe', type=int)
     parser.add_argument('p', help='Propagation probability for diffusion model', type=float)
     parser.add_argument('num_influ_iter', help='Number of iterations of independent-cascade diffusion', type=int)
+    parser.add_argument('if_herd', help='True if herding', type=int)
 
     args = parser.parse_args()
     
@@ -73,8 +74,9 @@ def main():
     num_fw_iter = args.num_fw_iter 
     p = args.p 
     num_influ_iter = args.num_influ_iter 
+    if_herd = args.if_herd
 
-    get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter)
+    get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd)
     print filename + " compeleted in " + str(time.clock() - tic) + 's'
 
 if __name__ == '__main__':
