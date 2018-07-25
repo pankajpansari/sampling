@@ -22,8 +22,8 @@ def command_ground_truth():
             this_file = 'g_N_' + str(N) + '_' + str(i) + '.txt'
             for nsamples_mlr in nsamples_mlr_list:
                 for num_influ_iter in num_influ_iter_list:
-                    f.write('python generate_ground_truth.py ' + graph_dir + this_file + ' ' + str(k) + ' ' + str(nsamples_mlr) + ' ' + str(num_fw_iter) + ' ' + str(p) + ' ' + str(num_influ_iter) + ' 1\n'  )
-    #                print 'python generate_ground_truth.py ' + graph_dir + this_file + ' ' + str(k) + ' ' + str(nsamples_mlr) + ' ' + str(num_fw_iter) + ' ' + str(p) + ' ' + str(num_influ_iter) + ' 0\n'
+#                    f.write('python generate_ground_truth.py ' + graph_dir + this_file + ' ' + str(k) + ' ' + str(nsamples_mlr) + ' ' + str(num_fw_iter) + ' ' + str(p) + ' ' + str(num_influ_iter) + ' 1\n'  )
+                    print 'python generate_ground_truth.py ' + graph_dir + this_file + ' ' + str(k) + ' ' + str(nsamples_mlr) + ' ' + str(num_fw_iter) + ' ' + str(p) + ' ' + str(num_influ_iter) + ' 0\n'
 
     f.close()
 

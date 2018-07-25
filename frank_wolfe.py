@@ -70,7 +70,7 @@ def getGrad(G, x, nsamples, influ_obj, herd):
             m[p] = 1
             grad[p] = grad[p] + (influ_obj(np.logical_or(sample.numpy(), m.numpy())) - influ_obj(np.logical_and(sample.numpy(), np.logical_not(m.numpy()))))
             m[p] = 0
-    return grad
+    return grad*1.0/nsamples
 
 
 def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter, if_herd):
