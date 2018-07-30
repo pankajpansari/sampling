@@ -5,14 +5,14 @@ import math
 import torch
 from influence import ic_model as submodObj
 from torch.autograd import Variable
-from frank_wolfe import runFrankWolfe, getGrad
+from frank_wolfe import runFrankWolfe
+from frank_wolfe_importance import runImportanceFrankWolfe
 import time
 import argparse
 np.random.seed(1234)
 torch.manual_seed(1234) 
 
-
-def get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd):
+def get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_importance):
 
     f = open(filename, 'rU')
 
@@ -36,9 +36,12 @@ def get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, 
 
     ind = filename.find('.')
 
-    file_prefix = '_'.join(str(x) for x in [filename[0:ind], k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd])
+    file_prefix = '_'.join(str(x) for x in [filename[0:ind], k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_importance])
 
-    x_opt = runFrankWolfe(G, nsamples_mlr, k, file_prefix, num_fw_iter, p, num_influ_iter, if_herd)
+    if if_importance == 1:
+        x_opt = runImportanceFrankWolfe(G, nsamples_mlr, k, file_prefix, num_fw_iter, p, num_influ_iter, if_herd)
+    else:
+        x_opt = runFrankWolfe(G, nsamples_mlr, k, file_prefix, num_fw_iter, p, num_influ_iter, if_herd)
 
     #Round the optimum solution and get function values
     top_k = Variable(torch.zeros(N)) #conditional grad
@@ -65,6 +68,7 @@ def main():
     parser.add_argument('p', help='Propagation probability for diffusion model', type=float)
     parser.add_argument('num_influ_iter', help='Number of iterations of independent-cascade diffusion', type=int)
     parser.add_argument('if_herd', help='True if herding', type=int)
+    parser.add_argument('if_importance', help='True if importance sampling to be done', type=int)
 
     args = parser.parse_args()
     
@@ -75,8 +79,9 @@ def main():
     p = args.p 
     num_influ_iter = args.num_influ_iter 
     if_herd = args.if_herd
+    if_importance = args.if_importance
 
-    get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd)
+    get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_importance)
     print filename + " compeleted in " + str(time.clock() - tic) + 's'
 
 if __name__ == '__main__':

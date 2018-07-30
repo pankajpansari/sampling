@@ -9,6 +9,8 @@ from torch.autograd import Variable
 import logger
 from builtins import range
 import time
+np.random.seed(1234)
+torch.manual_seed(1234) 
 
 def herd_points(probs, num):
     """ Based on Welling & Chen (2010), eqn (18) and (19) """
@@ -71,7 +73,6 @@ def getGrad(G, x, nsamples, influ_obj, herd):
             grad[p] = grad[p] + (influ_obj(np.logical_or(sample.numpy(), m.numpy())) - influ_obj(np.logical_and(sample.numpy(), np.logical_not(m.numpy()))))
             m[p] = 0
     return grad*1.0/nsamples
-
 
 def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter, if_herd):
 
