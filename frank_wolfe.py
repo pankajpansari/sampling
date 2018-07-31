@@ -74,14 +74,14 @@ def getGrad(G, x, nsamples, influ_obj, herd):
             m[p] = 0
     return grad*1.0/nsamples
 
-def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter, if_herd):
+def runFrankWolfe(G, nsamples, k, log_file, num_fw_iter, p, num_influ_iter, if_herd):
 
     N = nx.number_of_nodes(G)
 
     x = Variable(torch.Tensor([1.0*k/N]*N))
     
     bufsize = 0
-    f = open(file_prefix + '_log.txt', 'w', bufsize)
+    f = open(log_file + '_log.txt', 'w', bufsize)
 
     influ_obj = Influence(G, p, num_influ_iter)
 
@@ -114,6 +114,7 @@ def runFrankWolfe(G, nsamples, k, file_prefix, num_fw_iter, p, num_influ_iter, i
         print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic),  "   Total/New/Cache: ", influ_obj.itr_total , influ_obj.itr_new , influ_obj.itr_cache
 
         f.write(str(toc - tic) + " " + str(obj.item()) + " " + str(influ_obj.itr_total) + '/' + str(influ_obj.itr_new) + '/' + str(influ_obj.itr_cache) + "\n") 
+
 
     f.close()
 

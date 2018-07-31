@@ -12,9 +12,11 @@ import argparse
 np.random.seed(1234)
 torch.manual_seed(1234) 
 
-def get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_importance):
+def get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_importance):
 
-    f = open(filename, 'rU')
+    graph_file = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/graphs/g_N_' + str(N) + '_' + str(g_id) + '.txt'
+
+    f = open(graph_file, 'rU')
 
     G = nx.DiGraph()
 
@@ -34,14 +36,14 @@ def get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, 
 
     N = nx.number_of_nodes(G)
 
-    ind = filename.find('.')
+    temp = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_log/g_N_' + str(N) + '_' + str(g_id) 
 
-    file_prefix = '_'.join(str(x) for x in [filename[0:ind], k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_importance])
+    log_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_importance]) + '.txt'
 
     if if_importance == 1:
-        x_opt = runImportanceFrankWolfe(G, nsamples_mlr, k, file_prefix, num_fw_iter, p, num_influ_iter, if_herd)
+        x_opt = runImportanceFrankWolfe(G, nsamples_mlr, k, log_file, num_fw_iter, p, num_influ_iter, if_herd)
     else:
-        x_opt = runFrankWolfe(G, nsamples_mlr, k, file_prefix, num_fw_iter, p, num_influ_iter, if_herd)
+        x_opt = runFrankWolfe(G, nsamples_mlr, k, log_file, num_fw_iter, p, num_influ_iter, if_herd)
 
     #Round the optimum solution and get function values
     top_k = Variable(torch.zeros(N)) #conditional grad
@@ -50,8 +52,11 @@ def get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, 
     gt_val = submodObj(G, top_k, p, num_influ_iter)
 
     #Save optimum solution and value
+    temp = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_gt/g_N_' + str(N) + '_' + str(g_id) 
 
-    f = open(file_prefix + '_gt.txt', 'w')
+    opt_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_importance]) + '.txt'
+
+    f = open(opt_file, 'w')
     f.write(str(gt_val.item()) + '\n')
     for x_t in x_opt:
         f.write(str(x_t.item()) + '\n')
@@ -61,7 +66,8 @@ def main():
 
     tic = time.clock()
     parser = argparse.ArgumentParser(description='Generating ground truth for given graph using Frank-Wolfe')
-    parser.add_argument('filename', help='Full path of the graph file', type=str)
+    parser.add_argument('N', help='Number of nodes in graph', type=int)
+    parser.add_argument('g_id', help='Id of the graph file', type=int)
     parser.add_argument('k', help='Cardinality constraint', type=int)
     parser.add_argument('nsamples_mlr', help='Number of samples for multilinear relaxation estimation', type=int)
     parser.add_argument('num_fw_iter', help='Number of iterations of Frank-Wolfe', type=int)
@@ -72,7 +78,8 @@ def main():
 
     args = parser.parse_args()
     
-    filename = args.filename
+    N = args.N
+    g_id = args.g_id
     k = args.k #cardinality constraint
     nsamples_mlr = args.nsamples_mlr #draw these many sets from x for multilinear relaxation
     num_fw_iter = args.num_fw_iter 
@@ -81,8 +88,9 @@ def main():
     if_herd = args.if_herd
     if_importance = args.if_importance
 
-    get_ground_truth(filename, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_importance)
-    print filename + " compeleted in " + str(time.clock() - tic) + 's'
+    get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_importance)
+
+    print "Compeleted in " + str(time.clock() - tic) + 's'
 
 if __name__ == '__main__':
     main()
