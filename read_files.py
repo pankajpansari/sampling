@@ -1,5 +1,7 @@
 import networkx as nx
 import sys
+import torch
+from torch.autograd import Variable
 
 def get_sfo_optimum(filename, N):
 
