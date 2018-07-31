@@ -81,7 +81,8 @@ def runFrankWolfe(G, nsamples, k, log_file, num_fw_iter, p, num_influ_iter, if_h
     x = Variable(torch.Tensor([1.0*k/N]*N))
     
     bufsize = 0
-    f = open(log_file + '_log.txt', 'w', bufsize)
+
+    f = open(log_file, 'w', bufsize)
 
     influ_obj = Influence(G, p, num_influ_iter)
 
