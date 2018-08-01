@@ -44,14 +44,11 @@ def getImportanceWeights(samples_list, nominal, proposal):
     logp_prp = getLogProb(samples_list, proposal)
     return torch.exp(logp_nom - logp_prp)
 
-def getImportanceRelax(G, x_good, x, nsamples, influ_obj, herd): 
+def getImportanceRelax(G, x_good, x, nsamples, influ_obj, herd, a): 
 
     current_sum = Variable(torch.FloatTensor([0]), requires_grad = False) 
 
-    a = 1e-2
     x_prp = (1 - a)*x + a*x_good
-#    x_prp = 0.5*x + 0.5*x_good
-#    x_prp = x
 
     if herd == 1:
         samples_list = herd_points(x_prp, nsamples) 
@@ -76,7 +73,7 @@ def getCondGrad(grad, k):
     return top_k
 
 
-def getImportanceGrad(G, x_good, x, nsamples, influ_obj, herd):
+def getImportanceGrad(G, x_good, x, nsamples, influ_obj, herd, a):
 
     #Returns the gradient vector of the multilinear relaxation at x as given in Chekuri's paper
     #(See Theorem 1 in nips2012 paper)
@@ -84,7 +81,6 @@ def getImportanceGrad(G, x_good, x, nsamples, influ_obj, herd):
     N = G.number_of_nodes()
     grad = Variable(torch.zeros(N))
 
-    a = 1e-2
     x_prp = (1 - a)*x + a*x_good
 
     if herd == 1: 
@@ -105,38 +101,47 @@ def getImportanceGrad(G, x_good, x, nsamples, influ_obj, herd):
     return grad*1.0/nsamples
 
 
-#def variance_study(G, nsamples, k, var_file, num_fw_iter, p, num_influ_iter, if_herd, x_good_sfo, x_good_fw):
-#
-#    N = nx.number_of_nodes(G)
-#
-#    influ_obj = Influence(G, p, num_influ_iter)
-#
-#    x = torch.Tensor([0.5]*N) 
-#
-#    temp = []
-#
-#    for t in range(20):
-#        a = getImportanceRelax(G, x_good_sfo, x, nsamples, influ_obj, if_herd).item()
-#        b = getImportanceRelax(G, x_good_fw, x, nsamples, influ_obj, if_herd).item()
-#        c = getRelax(G, x, nsamples, influ_obj, if_herd).item()
-#        print a, b, c
-#        temp.append((a, b, c))
-#
-#    print '\n'*2
-#    print "sfo var= ", np.std([t[0] for t in temp]), "  mean = ", np.mean([t[0] for t in temp])
-#    print "fw var = ", np.std([t[1] for t in temp]), "  mean = ", np.mean([t[1] for t in temp])
-#    print "mc var = ", np.std([t[2] for t in temp]), "  mean = ", np.mean([t[2] for t in temp])
-#    print "true relax value = ", getRelax(G, x, 100, influ_obj, if_herd).item()
-#
-#    f = open(var_file, 'w', bufsize)
-#    print( "sfo var= ", np.std([t[0] for t in temp]), "  mean = ", np.mean([t[0] for t in temp]), file = f)
-#    print( "fw var = ", np.std([t[1] for t in temp]), "  mean = ", np.mean([t[1] for t in temp]), file = f)
-#    print( "mc var = ", np.std([t[2] for t in temp]), "  mean = ", np.mean([t[2] for t in temp]), file = f)
-#    print( "true relax value = ", getRelax(G, x, 100, influ_obj, if_herd).item(), file = f)
-#
-#    f.close()
+def variance_study(G, nsamples, k, var_file, num_fw_iter, p, num_influ_iter,
+        if_herd, x_good_sfo, x_good_fw, a):
 
-def runImportanceFrankWolfe(G, nsamples, k, log_file, num_fw_iter, p, num_influ_iter, if_herd, x_good):
+    N = nx.number_of_nodes(G)
+
+    influ_obj = Influence(G, p, num_influ_iter)
+
+    x = torch.Tensor([0.5]*N) 
+
+    temp = []
+
+    for t in range(20):
+        val1 = getImportanceRelax(G, x_good_sfo, x, nsamples, influ_obj, if_herd, a).item()
+        val2 = getImportanceRelax(G, x_good_fw, x, nsamples, influ_obj, if_herd, a).item()
+        val3 = getRelax(G, x, nsamples, influ_obj, if_herd).item()
+        print(val1, val2, val3)
+        temp.append((val1, val2, val3))
+
+    print('\n'*2)
+    print("sfo var= ", np.std([t[0] for t in temp]), "  mean = ", np.mean([t[0] for t in temp]))
+    print("fw var = ", np.std([t[1] for t in temp]), "  mean = ", np.mean([t[1] for t in temp]))
+    print("mc var = ", np.std([t[2] for t in temp]), "  mean = ", np.mean([t[2] for t in temp]))
+    print("true relax value = ", getRelax(G, x, 100, influ_obj, if_herd).item())
+
+    f = open(var_file, 'w', 0)
+    f.write(str(np.std([t[0] for t in temp]))+ " " + str(np.mean([t[0] for t in
+        temp])) + "\n")
+    f.write(str(np.std([t[1] for t in temp]))+ " " + str(np.mean([t[1] for t in
+        temp])) + "\n")
+    f.write(str(np.std([t[2] for t in temp]))+ " " + str(np.mean([t[2] for t in
+        temp])) + "\n")
+    f.write(str(getRelax(G, x, 100, influ_obj, if_herd).item()) + "\n")
+
+#    print(np.std([t[0] for t in temp]), np.mean([t[0] for t in temp]), file = f)
+#    print(np.std([t[1] for t in temp]), np.mean([t[1] for t in temp]), file = f)
+#    print(np.std([t[2] for t in temp]), np.mean([t[2] for t in temp]), file = f)
+#    print(getRelax(G, x, 100, influ_obj, if_herd).item(), file = f)
+
+    f.close()
+
+def runImportanceFrankWolfe(G, nsamples, k, log_file, opt_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a):
 
     N = nx.number_of_nodes(G)
 
@@ -151,8 +156,12 @@ def runImportanceFrankWolfe(G, nsamples, k, log_file, num_fw_iter, p, num_influ_
     tic = time.clock()
 
     iter_num = 0
-    obj = getImportanceRelax(G, x_good, x, nsamples, influ_obj, if_herd)
+    obj = getImportanceRelax(G, x_good, x, nsamples, influ_obj, if_herd, a)
     toc = time.clock()
+
+    influ_val = []
+    influ_val_best = []
+    influ_best = -10
 
     print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic),  "   Total/New/Cache: ", influ_obj.itr_total , influ_obj.itr_new , influ_obj.itr_cache
 
@@ -162,7 +171,7 @@ def runImportanceFrankWolfe(G, nsamples, k, log_file, num_fw_iter, p, num_influ_
 
         influ_obj.counter_reset()
 
-        grad = getImportanceGrad(G, x_good, x,nsamples, influ_obj, if_herd)
+        grad = getImportanceGrad(G, x_good, x,nsamples, influ_obj, if_herd, a)
 
         x_star = getCondGrad(grad, k)
 
@@ -170,7 +179,7 @@ def runImportanceFrankWolfe(G, nsamples, k, log_file, num_fw_iter, p, num_influ_
 
         x = step*x_star + (1 - step)*x
 
-        obj = getImportanceRelax(G, x_good, x, nsamples, influ_obj, if_herd)
+        obj = getImportanceRelax(G, x_good, x, nsamples, influ_obj, if_herd, a)
         
         toc = time.clock()
 
@@ -178,9 +187,40 @@ def runImportanceFrankWolfe(G, nsamples, k, log_file, num_fw_iter, p, num_influ_
 
         f.write(str(toc - tic) + " " + str(obj.item()) + " " + str(influ_obj.itr_total) + '/' + str(influ_obj.itr_new) + '/' + str(influ_obj.itr_cache) + "\n") 
 
+        if iter_num % 10 == 0:
+
+            #Round the current solution and get function values
+            top_k = Variable(torch.zeros(N)) #conditional grad
+            sorted_ind = torch.sort(x, descending = True)[1][0:k]
+            top_k[sorted_ind] = 1
+            influ = submodObj(G, top_k, p, 100)
+            influ_val.append(influ)
+            if influ > influ_best:
+                influ_best = influ
+            influ_val_best.append(influ_best)
+
     f.close()
 
-    return x
+    x_opt = x
+
+    #Round the optimum solution and get function values
+    top_k = Variable(torch.zeros(N)) #conditional grad
+    sorted_ind = torch.sort(x_opt, descending = True)[1][0:k]
+    top_k[sorted_ind] = 1
+    gt_val = submodObj(G, top_k, p, 100)
+
+    #Save optimum solution and value
+    f = open(opt_file, 'w')
+
+    for i in range(len(influ_val)):
+        f.write(str(influ_val[i].item()) + ' ' + str(influ_val_best[i].item()) + '\n')
+
+    f.write(str(gt_val.item()) + '\n')
+    for x_t in x_opt:
+        f.write(str(x_t.item()) + '\n')
+    f.close()
+
+    return x_opt
 
 if __name__ == '__main__':
 
