@@ -47,20 +47,16 @@ def get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter,
     opt_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p,
         num_influ_iter, if_herd, if_importance, if_sfo_gt, a]) + '.txt'
 
-    if if_importance == 1:
+    if if_sfo_gt == 1:
 
-        if if_sfo_gt == 1:
-
-            x_good = get_sfo_optimum('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/sfo_gt/g_N_' + str(N) + '_id_' + str(g_id) + '_k_' + str(k) + '.txt', N) 
-
-        else:
-            x_good = get_fw_optimum('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_gt/g_N_' + str(N) + '_id_' + str(g_id) + '_k_' + str(k) + '_100.txt', N) 
-
-        x_opt = runImportanceFrankWolfe(G, nsamples_mlr, k, log_file, opt_file,
-                num_fw_iter, p, num_influ_iter, if_herd, x_good, a)
+        x_good = get_sfo_optimum('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/sfo_gt/g_N_' + str(N) + '_id_' + str(g_id) + '_k_' + str(k) + '.txt', N) 
 
     else:
-        x_opt = runFrankWolfe(G, nsamples_mlr, k, log_file, num_fw_iter, p, num_influ_iter, if_herd)
+        x_good = get_fw_optimum('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_gt/g_N_' + str(N) + '_id_' + str(g_id) + '_k_' + str(k) + '_100.txt', N) 
+
+    x_opt = runImportanceFrankWolfe(G, nsamples_mlr, k, log_file, opt_file,
+            num_fw_iter, p, num_influ_iter, if_herd, x_good, a)
+
 
 def main():
 
@@ -75,7 +71,6 @@ def main():
     parser.add_argument('p', help='Propagation probability for diffusion model', type=float)
     parser.add_argument('num_influ_iter', help='Number of iterations of independent-cascade diffusion', type=int)
     parser.add_argument('if_herd', help='True if herding', type=int)
-    parser.add_argument('if_importance', help='True if importance sampling to be done', type=int)
     parser.add_argument('if_sfo_gt', help='True if greedy ground-truth to be used during importance sampling', type=int)
     parser.add_argument('a', help='Convex combination coefficient', type=float)
 

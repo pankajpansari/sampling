@@ -134,11 +134,6 @@ def variance_study(G, nsamples, k, var_file, num_fw_iter, p, num_influ_iter,
         temp])) + "\n")
     f.write(str(getRelax(G, x, 100, influ_obj, if_herd).item()) + "\n")
 
-#    print(np.std([t[0] for t in temp]), np.mean([t[0] for t in temp]), file = f)
-#    print(np.std([t[1] for t in temp]), np.mean([t[1] for t in temp]), file = f)
-#    print(np.std([t[2] for t in temp]), np.mean([t[2] for t in temp]), file = f)
-#    print(getRelax(G, x, 100, influ_obj, if_herd).item(), file = f)
-
     f.close()
 
 def runImportanceFrankWolfe(G, nsamples, k, log_file, opt_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a):

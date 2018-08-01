@@ -24,15 +24,15 @@ def command_ground_truth():
                 [N, i, k, nsamples, num_fw_iter, p, num_influ_iter, 0, 0, 0,
                     1.0]), file = f)
 
-            for a in a_list:
-                #no herding
-                print('python generate_ground_truth.py ' + ' '.join(str(x) for
-                    x in [N, i, k, nsamples, num_fw_iter, p, num_influ_iter, 0,
-                        1, 1, a]), file = f)
-
-                print('python generate_ground_truth.py ' + ' '.join(str(x) for
-                    x in [N, i, k, nsamples, num_fw_iter, p, num_influ_iter, 0,
-                        1, 0, a]), file = f)
+#            for a in a_list:
+#                #no herding
+#                print('python generate_ground_truth.py ' + ' '.join(str(x) for
+#                    x in [N, i, k, nsamples, num_fw_iter, p, num_influ_iter, 0,
+#                        1, 1, a]), file = f)
+#
+#                print('python generate_ground_truth.py ' + ' '.join(str(x) for
+#                    x in [N, i, k, nsamples, num_fw_iter, p, num_influ_iter, 0,
+#                        1, 0, a]), file = f)
 
 #                #herding
 #                print 'python generate_ground_truth.py ' + ' '.join(str(x) for x in [N, i, k, nsamples, num_fw_iter, p, num_influ_iter, 1, 1, 1, a])
