@@ -74,7 +74,7 @@ def getGrad(G, x, nsamples, influ_obj, herd):
             m[p] = 0
     return grad*1.0/nsamples
 
-def runFrankWolfe(G, nsamples, k, log_file, num_fw_iter, p, num_influ_iter, if_herd):
+def runFrankWolfe(G, nsamples, k, log_file, opt_file, num_fw_iter, p, num_influ_iter, if_herd):
 
     N = nx.number_of_nodes(G)
 
@@ -91,6 +91,10 @@ def runFrankWolfe(G, nsamples, k, log_file, num_fw_iter, p, num_influ_iter, if_h
     iter_num = 0
     obj = getRelax(G, x, nsamples, influ_obj, if_herd)
     toc = time.clock()
+
+    influ_val = []
+    influ_val_best = []
+    influ_best = -10
 
     print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic),  "   Total/New/Cache: ", influ_obj.itr_total , influ_obj.itr_new , influ_obj.itr_cache
 
@@ -116,7 +120,37 @@ def runFrankWolfe(G, nsamples, k, log_file, num_fw_iter, p, num_influ_iter, if_h
 
         f.write(str(toc - tic) + " " + str(obj.item()) + " " + str(influ_obj.itr_total) + '/' + str(influ_obj.itr_new) + '/' + str(influ_obj.itr_cache) + "\n") 
 
+        if iter_num % 10 == 0:
 
+            #Round the current solution and get function values
+            top_k = Variable(torch.zeros(N)) #conditional grad
+            sorted_ind = torch.sort(x, descending = True)[1][0:k]
+            top_k[sorted_ind] = 1
+            influ = submodObj(G, top_k, p, 100)
+            influ_val.append(influ)
+            if influ > influ_best:
+                influ_best = influ
+            influ_val_best.append(influ_best)
+
+    f.close()
+
+    x_opt = x
+
+    #Round the optimum solution and get function values
+    top_k = Variable(torch.zeros(N)) #conditional grad
+    sorted_ind = torch.sort(x_opt, descending = True)[1][0:k]
+    top_k[sorted_ind] = 1
+    gt_val = submodObj(G, top_k, p, 100)
+
+    #Save optimum solution and value
+    f = open(opt_file, 'w')
+
+    for i in range(len(influ_val)):
+        f.write(str(influ_val[i].item()) + ' ' + str(influ_val_best[i].item()) + '\n')
+
+    f.write(str(gt_val.item()) + '\n')
+    for x_t in x_opt:
+        f.write(str(x_t.item()) + '\n')
     f.close()
 
     return x
