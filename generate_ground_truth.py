@@ -6,32 +6,14 @@ import torch
 from influence import ic_model as submodObj
 from torch.autograd import Variable
 from frank_wolfe import runFrankWolfe
-from frank_wolfe_importance import runImportanceFrankWolfe, variance_study
+from frank_wolfe_importance import runImportanceFrankWolfe
 from read_files import get_sfo_optimum, get_fw_optimum, read_graph
 import time
 import argparse
 np.random.seed(1234)
 torch.manual_seed(1234) 
 
-def get_variance(N, g_id, k, nsamples, num_fw_iter, p, num_influ_iter, if_herd, a):
-
-    graph_file = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/graphs/g_N_' + str(N) + '_' + str(g_id) + '.txt'
-
-    G = read_graph(graph_file, N)
-
-    x_good_sfo = get_sfo_optimum('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/sfo_gt/g_N_' + str(N) + '_id_' + str(g_id) + '_k_' + str(k) + '.txt', N) 
-
-    x_good_fw = get_fw_optimum('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_gt/g_N_' + str(N) + '_id_' + str(g_id) + '_k_' + str(k) + '_100.txt', N) 
-
-    temp = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/var_study/g_N_' + str(N) + '_' + str(g_id) 
-
-    var_file = '_'.join(str(x) for x in [temp, k, nsamples, num_fw_iter, p, num_influ_iter, if_herd, a]) + '.txt'
-
-    variance_study(G, nsamples, k, var_file, num_fw_iter, p, num_influ_iter, if_herd, x_good_sfo, x_good_fw, a) 
-
-
-def get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter,
-        if_herd, if_importance, if_sfo_gt, a):
+def get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a):
 
     graph_file = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/graphs/g_N_' + str(N) + '_' + str(g_id) + '.txt'
 
@@ -40,12 +22,12 @@ def get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter,
     temp = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_log/g_N_' + str(N) + '_' + str(g_id) 
 
     log_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p,
-        num_influ_iter, if_herd, if_importance, if_sfo_gt, a]) + '.txt'
+        num_influ_iter, if_herd, if_sfo_gt, a]) + '.txt'
 
     temp = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_opt/g_N_' + str(N) + '_' + str(g_id) 
 
     opt_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p,
-        num_influ_iter, if_herd, if_importance, if_sfo_gt, a]) + '.txt'
+        num_influ_iter, if_herd, if_sfo_gt, a]) + '.txt'
 
     if if_sfo_gt == 1:
 
@@ -84,12 +66,11 @@ def main():
     p = args.p 
     num_influ_iter = args.num_influ_iter 
     if_herd = args.if_herd
-    if_importance = args.if_importance
     if_sfo_gt = args.if_sfo_gt
     a = args.a
 
 #    get_variance(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, a)
-    get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_importance, if_sfo_gt, a)
+    get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a)
 
     print "Compeleted in " + str(time.clock() - tic) + 's'
 
