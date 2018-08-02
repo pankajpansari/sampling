@@ -17,7 +17,7 @@ def command_ground_truth():
 
     command_file = 'jobsQueued.txt'
     f = open(command_file, 'a')
-    for i in range(2):
+    for i in range(3):
         for nsamples in nsamples_mlr_list:
             #simple mc
             print('python generate_ground_truth.py ' + ' '.join(str(x) for x in
