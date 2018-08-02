@@ -146,8 +146,7 @@ def runImportanceFrankWolfe(G, nsamples, k, log_file, opt_file, num_fw_iter, p, 
 
         f.write(str(toc - tic) + " " + str(obj.item()) + " " + str(influ_obj.itr_total) + '/' + str(influ_obj.itr_new) + '/' + str(influ_obj.itr_cache) + "\n") 
 
-
-        if iter_num % 1 == 0:
+        if iter_num % 10 == 0:
 
             #Round the current solution and get function values
             top_k = Variable(torch.zeros(N)) #conditional grad
@@ -182,6 +181,55 @@ def runImportanceFrankWolfe(G, nsamples, k, log_file, opt_file, num_fw_iter, p, 
 #    f.close()
 
     return x_opt
+
+def generateFWiterates(G, nsamples, k, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a):
+
+    N = nx.number_of_nodes(G)
+
+    influ_obj = Influence(G, p, num_influ_iter)
+
+    x = Variable(torch.Tensor([1.0*k/N]*N))
+
+    bufsize = 0
+
+    f = open(iterates_file, 'w', bufsize)
+
+    tic = time.clock()
+
+    iter_num = 0
+    obj = getImportanceRelax(G, x_good, x, nsamples, influ_obj, if_herd, a)
+    toc = time.clock()
+
+    print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic),  "   Total/New/Cache: ", influ_obj.itr_total , influ_obj.itr_new , influ_obj.itr_cache
+
+    for x_t in x:
+        f.write(str(x_t.item()) + '\n')
+    f.write('\n')
+
+    for iter_num in np.arange(1, num_fw_iter):
+
+        influ_obj.counter_reset()
+
+        grad = getImportanceGrad(G, x_good, x,nsamples, influ_obj, if_herd, a)
+
+        x_star = getCondGrad(grad, k)
+
+        step = 2.0/(iter_num + 2) 
+
+        x = step*x_star + (1 - step)*x
+
+        obj = getImportanceRelax(G, x_good, x, nsamples, influ_obj, if_herd, a)
+        
+        toc = time.clock()
+
+        print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic),  "   Total/New/Cache: ", influ_obj.itr_total , influ_obj.itr_new , influ_obj.itr_cache
+
+        for x_t in x:
+            f.write(str(x_t.item()) + '\n')
+        f.write('\n')
+
+    f.close()
+
 
 if __name__ == '__main__':
 

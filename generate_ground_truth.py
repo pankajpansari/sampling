@@ -6,7 +6,7 @@ import torch
 from influence import ic_model as submodObj
 from torch.autograd import Variable
 from frank_wolfe import runFrankWolfe
-from frank_wolfe_importance import runImportanceFrankWolfe
+from frank_wolfe_importance import runImportanceFrankWolfe, generateFWiterates
 from read_files import get_sfo_optimum, get_fw_optimum, read_graph
 import time
 import argparse
@@ -36,9 +36,14 @@ def get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, i
     else:
         x_good = get_fw_optimum('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_gt/g_N_' + str(N) + '_id_' + str(g_id) + '_k_' + str(k) + '_100.txt', N) 
 
-    x_opt = runImportanceFrankWolfe(G, nsamples_mlr, k, log_file, opt_file,
-            num_fw_iter, p, num_influ_iter, if_herd, x_good, a)
+    temp = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/iterates/g_N_' + str(N) + '_' + str(g_id) 
 
+    iterates_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p,
+        num_influ_iter, if_herd, if_sfo_gt, 0]) + '.txt'
+
+    generateFWiterates(G, nsamples_mlr, k, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, 0)
+#    x_opt = runImportanceFrankWolfe(G, nsamples_mlr, k, log_file, opt_file,
+#            num_fw_iter, p, num_influ_iter, if_herd, x_good, a)
 
 def main():
 
