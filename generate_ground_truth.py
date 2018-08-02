@@ -8,6 +8,7 @@ from torch.autograd import Variable
 from frank_wolfe import runFrankWolfe
 from frank_wolfe_importance import runImportanceFrankWolfe, generateFWiterates
 from read_files import get_sfo_optimum, get_fw_optimum, read_graph
+from variance import convex_var
 import time
 import argparse
 np.random.seed(1234)
@@ -74,8 +75,8 @@ def main():
     if_sfo_gt = args.if_sfo_gt
     a = args.a
 
-#    get_variance(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, a)
-    get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a)
+    convex_var(N, g_id, k, nsamples_mlr, p, num_influ_iter, if_herd, a)
+#    get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a)
 
     print "Compeleted in " + str(time.clock() - tic) + 's'
 
