@@ -100,7 +100,7 @@ def getImportanceGrad(G, x_good, x, nsamples, influ_obj, herd, a):
 
     return grad*1.0/nsamples
 
-def runImportanceFrankWolfe(G, nsamples, k, log_file, opt_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a):
+def runImportanceFrankWolfe(G, nsamples, k, log_file, opt_file, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a):
 
     N = nx.number_of_nodes(G)
 
@@ -111,6 +111,7 @@ def runImportanceFrankWolfe(G, nsamples, k, log_file, opt_file, num_fw_iter, p, 
     bufsize = 0
 
     f = open(log_file, 'w', bufsize)
+    f2 = open(iterates_file, 'w', bufsize)
 
     tic = time.clock()
 
@@ -118,13 +119,13 @@ def runImportanceFrankWolfe(G, nsamples, k, log_file, opt_file, num_fw_iter, p, 
     obj = getImportanceRelax(G, x_good, x, nsamples, influ_obj, if_herd, a)
     toc = time.clock()
 
-    influ_val = []
-    influ_val_best = []
-    influ_best = -10
-
     print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic),  "   Total/New/Cache: ", influ_obj.itr_total , influ_obj.itr_new , influ_obj.itr_cache
 
     f.write(str(toc - tic) + " " + str(obj.item()) + " " + str(influ_obj.itr_total) + '/' + str(influ_obj.itr_new) + '/' + str(influ_obj.itr_cache) + "\n") 
+
+    for x_t in x:
+        f2.write(str(x_t.item()) + '\n')
+    f2.write('\n')
 
     for iter_num in np.arange(1, num_fw_iter):
 
@@ -146,20 +147,13 @@ def runImportanceFrankWolfe(G, nsamples, k, log_file, opt_file, num_fw_iter, p, 
 
         f.write(str(toc - tic) + " " + str(obj.item()) + " " + str(influ_obj.itr_total) + '/' + str(influ_obj.itr_new) + '/' + str(influ_obj.itr_cache) + "\n") 
 
-        if iter_num % 10 == 0:
 
-            #Round the current solution and get function values
-            top_k = Variable(torch.zeros(N)) #conditional grad
-            sorted_ind = torch.sort(x, descending = True)[1][0:k]
-            top_k[sorted_ind] = 1
-            influ = submodObj(G, top_k, p, 100)
-            influ_val.append(influ)
-            if influ > influ_best:
-                influ_best = influ
-            influ_val_best.append(influ_best)
-
+        for x_t in x:
+            f2.write(str(x_t.item()) + '\n')
+        f2.write('\n')
 
     f.close()
+    f2.close()
 
     x_opt = x
 
@@ -169,67 +163,16 @@ def runImportanceFrankWolfe(G, nsamples, k, log_file, opt_file, num_fw_iter, p, 
     top_k[sorted_ind] = 1
     gt_val = submodObj(G, top_k, p, 100)
 
-#    #Save optimum solution and value
-#    f = open(opt_file, 'w')
-#
-#    for i in range(len(influ_val)):
-#        f.write(str(influ_val[i].item()) + ' ' + str(influ_val_best[i].item()) + '\n')
-#
-#    f.write(str(gt_val.item()) + '\n')
-#    for x_t in x_opt:
-#        f.write(str(x_t.item()) + '\n')
-#    f.close()
+    #Save optimum solution and value
+    f = open(opt_file, 'w')
 
-    return x_opt
+    f.write(str(gt_val.item()) + '\n')
 
-def generateFWiterates(G, nsamples, k, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a):
-
-    N = nx.number_of_nodes(G)
-
-    influ_obj = Influence(G, p, num_influ_iter)
-
-    x = Variable(torch.Tensor([1.0*k/N]*N))
-
-    bufsize = 0
-
-    f = open(iterates_file, 'w', bufsize)
-
-    tic = time.clock()
-
-    iter_num = 0
-    obj = getImportanceRelax(G, x_good, x, nsamples, influ_obj, if_herd, a)
-    toc = time.clock()
-
-    print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic),  "   Total/New/Cache: ", influ_obj.itr_total , influ_obj.itr_new , influ_obj.itr_cache
-
-    for x_t in x:
+    for x_t in x_opt:
         f.write(str(x_t.item()) + '\n')
-    f.write('\n')
-
-    for iter_num in np.arange(1, num_fw_iter):
-
-        influ_obj.counter_reset()
-
-        grad = getImportanceGrad(G, x_good, x,nsamples, influ_obj, if_herd, a)
-
-        x_star = getCondGrad(grad, k)
-
-        step = 2.0/(iter_num + 2) 
-
-        x = step*x_star + (1 - step)*x
-
-        obj = getImportanceRelax(G, x_good, x, nsamples, influ_obj, if_herd, a)
-        
-        toc = time.clock()
-
-        print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic),  "   Total/New/Cache: ", influ_obj.itr_total , influ_obj.itr_new , influ_obj.itr_cache
-
-        for x_t in x:
-            f.write(str(x_t.item()) + '\n')
-        f.write('\n')
-
     f.close()
 
+    return x_opt
 
 if __name__ == '__main__':
 
