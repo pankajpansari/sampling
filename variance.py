@@ -101,35 +101,6 @@ def convex_var(N, g_id, k, nsamples, p, num_influ_iter, if_herd, a):
     x_good_sfo = get_sfo_optimum('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/sfo_gt/g_N_' + str(N) + '_id_' + str(g_id) + '_k_' + str(k) + '.txt', N) 
 
     x_good_fw = get_fw_optimum('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_gt/g_N_' + str(N) + '_id_' + str(g_id) + '_k_' + str(k) + '_100.txt', N) 
-    temp = []
-
-    num_iterates = 6
-
-    x_list = read_iterates('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/iterates/g_N_' + str(N) + '_' + str(g_id) + '_' + str(k) + '_100_10_0.4_100_0_1_0.txt', N, num_iterates)
-
-    temp = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/var_study/g_N_' + str(N) + '_' + str(g_id) 
-
-    print('\n'*2)
-    print("sfo var= ", np.std([t[0] for t in temp]), "  mean = ", np.mean([t[0] for t in temp]))
-    print("fw var = ", np.std([t[1] for t in temp]), "  mean = ", np.mean([t[1] for t in temp]))
-    print("mc var = ", np.std([t[2] for t in temp]), "  mean = ", np.mean([t[2] for t in temp]))
-
-    f = open(var_file, 'a', 0)
-    f.write(str(np.std([t[0] for t in temp]))+ " " + str(np.mean([t[0] for t in temp])) + "\n")
-    f.write(str(np.std([t[1] for t in temp]))+ " " + str(np.mean([t[1] for t in temp])) + "\n")
-    f.write(str(np.std([t[2] for t in temp]))+ " " + str(np.mean([t[2] for t in temp])) + "\n")
-    f.write('\n')
-    f.close()
-
-def convex_var(N, g_id, k, nsamples, p, num_influ_iter, if_herd, a):
-
-    graph_file = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/graphs/g_N_' + str(N) + '_' + str(g_id) + '.txt'
-
-    G = read_graph(graph_file, N)
-
-    x_good_sfo = get_sfo_optimum('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/sfo_gt/g_N_' + str(N) + '_id_' + str(g_id) + '_k_' + str(k) + '.txt', N) 
-
-    x_good_fw = get_fw_optimum('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_gt/g_N_' + str(N) + '_id_' + str(g_id) + '_k_' + str(k) + '_100.txt', N) 
 
     num_iterates = 6
 
