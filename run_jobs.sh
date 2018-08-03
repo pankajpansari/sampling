@@ -1,0 +1,10 @@
+#!/bin/bash
+cp /dev/null jobsRunning.txt
+cp /dev/null jobsCompleted.txt
+
+a=$1
+b=$2
+for i in $(seq $a $b) ; do
+    echo "screen -dmS session$i ./clusterClient.pl -d ."
+    screen -dmS session$i ./clusterClient.pl -d . 
+done
