@@ -68,12 +68,17 @@ def variance_study(G, nsamples, k, var_file, p, num_influ_iter, if_herd, x_good_
 
     temp = []
 
-    for t in range(20):
-        val1 = getImportanceRelax(G, x_good_sfo, x, nsamples, influ_obj, if_herd, a).item()
-        val2 = getImportanceRelax(G, x_good_fw, x, nsamples, influ_obj, if_herd, a).item()
-        val3 = getRelax(G, x, nsamples, influ_obj, if_herd).item()
-        print(val1, val2, val3)
-        temp.append((val1, val2, val3))
+    if a == 0:
+        for t in range(20):
+            val = getRelax(G, x, nsamples, influ_obj, if_herd).item()
+            temp.append((val, val, val))
+
+    else:
+        for t in range(20):
+            val1 = getImportanceRelax(G, x_good_sfo, x, nsamples, influ_obj, if_herd, a).item()
+            val2 = getImportanceRelax(G, x_good_fw, x, nsamples, influ_obj, if_herd, a).item()
+            val3 = getRelax(G, x, nsamples, influ_obj, if_herd).item()
+            temp.append((val1, val2, val3))
 
     print('\n'*2)
     print("sfo var= ", np.std([t[0] for t in temp]), "  mean = ", np.mean([t[0] for t in temp]))

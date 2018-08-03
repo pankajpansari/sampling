@@ -10,19 +10,21 @@ def command_ground_truth():
     N = 512
     p = 0.4
     num_fw_iter = 10 
-    nsamples_mlr_list = [5, 10, 20] 
+    nsamples_mlr_list = [1, 5, 10, 20, 50, 100, 1000] 
     num_influ_iter = 100
     k = 20 #cardinality constraint
-    a_list = [1e-1, 1e-2, 1e-3] 
+    a_list = [0, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1] 
 
     command_file = 'jobsQueued.txt'
+    #empty file contents
+    f = open(command_file, 'w')
+    f.close()
+
     f = open(command_file, 'a')
-    for i in range(2):
+    for i in range(3):
         for nsamples in nsamples_mlr_list:
-            #simple mc
-            print('python generate_ground_truth.py ' + ' '.join(str(x) for x in
-                [N, i, k, nsamples, num_fw_iter, p, num_influ_iter, 0, 0, 0,
-                    1.0]), file = f)
+            for a in a_list:
+                print('python generate_ground_truth.py ' + ' '.join(str(x) for x in [N, i, k, nsamples, num_fw_iter, p, num_influ_iter, 0, 0, a]), file = f) 
 
 #            for a in a_list:
 #                #no herding
