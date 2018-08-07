@@ -6,7 +6,7 @@ import torch
 from influence import ic_model as submodObj
 from torch.autograd import Variable
 from frank_wolfe import runFrankWolfe
-from frank_wolfe_importance import runImportanceFrankWolfe, generateFWiterates
+from frank_wolfe_importance import runImportanceFrankWolfe
 from read_files import get_sfo_optimum, get_fw_optimum, read_graph
 from variance import convex_var
 import time
