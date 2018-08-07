@@ -79,11 +79,14 @@ def difference(a):
 
 # Gather our code in a main() function
 def main():
-     a = np.loadtxt(sys.argv[1])
-     p = int(sys.argv[2])
-     filename = sys.argv[1].replace('txt', 'png')
-     ind = a[:, 0] == p
-     linePlotShow(a[ind, 2])
+     filename = sys.argv[1]
+     f = open(filename, 'r')
+     val = []
+     for line in f:
+	print line
+ 	a = line.split(' ')
+	val.append(float(a[1]))
+     linePlotShow(val)
 
 if __name__ == '__main__':
     main()
