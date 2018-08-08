@@ -73,8 +73,8 @@ def main():
     if_sfo_gt = args.if_sfo_gt
     a = args.a
 
-#    convex_var(N, g_id, k, nsamples_mlr, p, num_influ_iter, if_herd, a)
-    get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a)
+    convex_var(N, g_id, k, nsamples_mlr, p, num_influ_iter, if_herd, a)
+#    get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a)
 
     print "Compeleted in " + str(time.clock() - tic) + 's'
 

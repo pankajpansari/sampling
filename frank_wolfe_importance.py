@@ -58,9 +58,11 @@ def getImportanceRelax(G, x_good, x, nsamples, influ_obj, herd, a):
     w = getImportanceWeights(samples_list, x, x_prp)
 
     for i in range(nsamples):
-        current_sum = current_sum + w[i]*influ_obj(samples_list[i].numpy())
+        current_sum = current_sum + (w[i]/w.sum())*influ_obj(samples_list[i].numpy())
 
-    return current_sum/nsamples
+#    print w.sum().item(), nsamples
+#    return current_sum/nsamples
+    return current_sum
 
 def getCondGrad(grad, k):
 

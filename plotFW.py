@@ -61,6 +61,15 @@ def linePlotShow(x):
 #     plt.xlim([-1, 1])
      plt.show()
 
+def linePlotSave(x, filename):
+     plt.plot(x, linestyle='-') 
+     plt.xlabel('Iterations')
+     plt.ylabel('Obj function val')
+#     plt.ylim([0, 100])
+#     plt.axhline(y[0], linewidth=2, color = 'b')
+#     plt.xlim([-1, 1])
+     plt.savefig(filename)
+
 def difference(a):
      b = a[a[:, 0] == 0].shape[0]
      diff = np.zeros(b)
@@ -79,14 +88,27 @@ def difference(a):
 
 # Gather our code in a main() function
 def main():
-     filename = sys.argv[1]
+     filename = '/home/pankaj/Sampling/data/input/social_graphs/N_512/fw_log/' + sys.argv[1]
+     save_filename = sys.argv[2]
      f = open(filename, 'r')
      val = []
      for line in f:
 	print line
  	a = line.split(' ')
 	val.append(float(a[1]))
-     linePlotShow(val)
+     linePlotSave(val, save_filename)
+
+def plot_iterates_hist():
+    filename = '/home/pankaj/Sampling/data/input/social_graphs/N_512/iterates/' + sys.argv[1]
+    a = np.loadtxt(filename)
+    for i in range(10):
+        plt.subplot(5, 2, i + 1)
+        temp = a[512*i:512*(i + 1)]
+        plt.hist(temp, bins = 100, range = (0, 1))
+        plt.title("iter = " + str(i))
+    plt.show()
+#    plt.savefig(sys.argv[2])
 
 if __name__ == '__main__':
-    main()
+#    main()
+    plot_iterates_hist()

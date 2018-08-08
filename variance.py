@@ -69,23 +69,23 @@ def variance_study(G, nsamples, k, var_file, p, num_influ_iter, if_herd, x_good_
     temp = []
 
     if a == 0:
-        for t in range(20):
+        for t in range(100):
             val = getRelax(G, x, nsamples, influ_obj, if_herd).item()
             temp.append((val, val, val))
 
     else:
-        for t in range(20):
+        for t in range(100):
             val1 = getImportanceRelax(G, x_good_sfo, x, nsamples, influ_obj, if_herd, a).item()
             val2 = getImportanceRelax(G, x_good_fw, x, nsamples, influ_obj, if_herd, a).item()
             val3 = getRelax(G, x, nsamples, influ_obj, if_herd).item()
             temp.append((val1, val2, val3))
 
     print('\n'*2)
-    print("sfo var= ", np.std([t[0] for t in temp]), "  mean = ", np.mean([t[0] for t in temp]))
-    print("fw var = ", np.std([t[1] for t in temp]), "  mean = ", np.mean([t[1] for t in temp]))
-    print("mc var = ", np.std([t[2] for t in temp]), "  mean = ", np.mean([t[2] for t in temp]))
+    print("sfo std= ", np.std([t[0] for t in temp]), "  mean = ", np.mean([t[0] for t in temp]))
+    print("fw std = ", np.std([t[1] for t in temp]), "  mean = ", np.mean([t[1] for t in temp]))
+    print("mc std = ", np.std([t[2] for t in temp]), "  mean = ", np.mean([t[2] for t in temp]))
 
-    f = open(var_file, 'a', 0)
+    f = open(std_file, 'w', 0)
     f.write(str(np.std([t[0] for t in temp]))+ " " + str(np.mean([t[0] for t in temp])) + "\n")
     f.write(str(np.std([t[1] for t in temp]))+ " " + str(np.mean([t[1] for t in temp])) + "\n")
     f.write(str(np.std([t[2] for t in temp]))+ " " + str(np.mean([t[2] for t in temp])) + "\n")
@@ -102,9 +102,9 @@ def convex_var(N, g_id, k, nsamples, p, num_influ_iter, if_herd, a):
 
     x_good_fw = get_fw_optimum('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_gt/g_N_' + str(N) + '_id_' + str(g_id) + '_k_' + str(k) + '_100.txt', N) 
 
-    num_iterates = 6
+    num_iterates = 10 
 
-    x_list = read_iterates('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/iterates/g_N_' + str(N) + '_' + str(g_id) + '_' + str(k) + '_100_10_0.4_100_0_1_0.txt', N, num_iterates)
+    x_list = read_iterates('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/iterates/g_N_' + str(N) + '_' + str(g_id) + '_' + str(k) + '_100_10_0.4_100_0_0_0.txt', N, num_iterates)
 
     temp = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/var_study/g_N_' + str(N) + '_' + str(g_id) 
 
@@ -116,5 +116,3 @@ def convex_var(N, g_id, k, nsamples, p, num_influ_iter, if_herd, a):
 
     for x in x_list:
         variance_study(G, nsamples, k, var_file, p, num_influ_iter, if_herd, x_good_sfo, x_good_fw, x, a) 
-
-
