@@ -69,26 +69,29 @@ def variance_study(G, nsamples, k, var_file, p, num_influ_iter, if_herd, x_good_
     temp = []
 
     if a == 0:
-        for t in range(100):
+        for t in range(40):
             val = getRelax(G, x, nsamples, influ_obj, if_herd).item()
             temp.append((val, val, val))
 
     else:
-        for t in range(100):
+        for t in range(40):
             val1 = getImportanceRelax(G, x_good_sfo, x, nsamples, influ_obj, if_herd, a).item()
             val2 = getImportanceRelax(G, x_good_fw, x, nsamples, influ_obj, if_herd, a).item()
             val3 = getRelax(G, x, nsamples, influ_obj, if_herd).item()
             temp.append((val1, val2, val3))
 
+    relax_gt = getRelax(G, x, 200, influ_obj, if_herd).item()
+
     print('\n'*2)
     print("sfo std= ", np.std([t[0] for t in temp]), "  mean = ", np.mean([t[0] for t in temp]))
     print("fw std = ", np.std([t[1] for t in temp]), "  mean = ", np.mean([t[1] for t in temp]))
     print("mc std = ", np.std([t[2] for t in temp]), "  mean = ", np.mean([t[2] for t in temp]))
+    print("gt = ", relax_gt)
 
-    f = open(std_file, 'w', 0)
-    f.write(str(np.std([t[0] for t in temp]))+ " " + str(np.mean([t[0] for t in temp])) + "\n")
-    f.write(str(np.std([t[1] for t in temp]))+ " " + str(np.mean([t[1] for t in temp])) + "\n")
-    f.write(str(np.std([t[2] for t in temp]))+ " " + str(np.mean([t[2] for t in temp])) + "\n")
+    f = open(var_file, 'a', 0)
+    f.write(str(np.std([t[0] for t in temp]))+ " " + str(np.mean([t[0] for t in temp])) + " " + str(relax_gt) + "\n")
+    f.write(str(np.std([t[1] for t in temp]))+ " " + str(np.mean([t[1] for t in temp])) + " " + str(relax_gt) + "\n")
+    f.write(str(np.std([t[2] for t in temp]))+ " " + str(np.mean([t[2] for t in temp])) + " " + str(relax_gt) + "\n")
     f.write('\n')
     f.close()
 

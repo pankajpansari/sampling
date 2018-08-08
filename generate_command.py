@@ -32,12 +32,23 @@ def verify_variance_files():
                 if os.stat(dirN + var_file).st_size == 0:
                     print(var_file)
 
+def command_solution_variance():
+
+    command_file = 'jobsQueued.txt'
+
+    f = open(command_file, 'w')
+
+    for nsamples in [1, 5, 10, 20, 50]:
+        for g_id in range(10):
+            seed = 123 + g_id
+            print('python generate_ground_truth.py 512 ' + str(g_id) + ' 20 ' + str(nsamples) + ' 20 0.4 100 0 0 0 ' + str(seed), file = f)
+
 def command_ground_truth():
     #N_list = [6, 7, 8, 9, 10] #in log terms (that is, graph has math.pow(2, N) nodes)
     N = 512
     p = 0.4
     num_fw_iter = 10 
-    nsamples_mlr_list = [1, 5, 10, 20, 50, 100] 
+    nsamples_mlr_list = [1, 5, 10, 20, 50] 
     num_influ_iter = 100
     k = 20 #cardinality constraint
     a_list = [1e-5, 1e-4, 1e-3, 1e-2, 1e-1] 
@@ -47,7 +58,7 @@ def command_ground_truth():
     f = open(command_file, 'w')
 
     for nsamples in nsamples_mlr_list:
-        for i in range(10):
+        for i in range(5):
             for a in a_list:
                 print('python generate_ground_truth.py ' + ' '.join(str(x) for x in [N, i, k, nsamples, num_fw_iter, p, num_influ_iter, 0, 0, a]), file = f) 
 
@@ -93,4 +104,5 @@ def command_ground_truth():
 if __name__ == '__main__':
 #    study_k_command()
 #    command_ground_truth()
-    verify_variance_files()
+    command_solution_variance()
+#    verify_variance_files()

@@ -12,9 +12,9 @@ from variance import convex_var
 import time
 import argparse
 np.random.seed(1234)
-torch.manual_seed(1234) 
 
-def get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a):
+def get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter,
+        if_herd, if_sfo_gt, a, torch_seed):
 
     graph_file = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/graphs/g_N_' + str(N) + '_' + str(g_id) + '.txt'
 
@@ -23,12 +23,12 @@ def get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, i
     temp = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_log/g_N_' + str(N) + '_' + str(g_id) 
 
     log_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p,
-        num_influ_iter, if_herd, if_sfo_gt, a]) + '.txt'
+        num_influ_iter, if_herd, if_sfo_gt, a, torch_seed]) + '.txt'
 
     temp = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_opt/g_N_' + str(N) + '_' + str(g_id) 
 
     opt_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p,
-        num_influ_iter, if_herd, if_sfo_gt, a]) + '.txt'
+        num_influ_iter, if_herd, if_sfo_gt, a, torch_seed]) + '.txt'
 
     if if_sfo_gt == 1:
 
@@ -40,7 +40,7 @@ def get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, i
     temp = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/iterates/g_N_' + str(N) + '_' + str(g_id) 
 
     iterates_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p,
-        num_influ_iter, if_herd, if_sfo_gt, 0]) + '.txt'
+        num_influ_iter, if_herd, if_sfo_gt, 0, torch_seed]) + '.txt'
 
     x_opt = runImportanceFrankWolfe(G, nsamples_mlr, k, log_file, opt_file, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a)
 
@@ -59,6 +59,7 @@ def main():
     parser.add_argument('if_herd', help='True if herding', type=int)
     parser.add_argument('if_sfo_gt', help='True if greedy ground-truth to be used during importance sampling', type=int)
     parser.add_argument('a', help='Convex combination coefficient', type=float)
+    parser.add_argument('torch_seed', help='Torch random seed', type=int)
 
     args = parser.parse_args()
     
@@ -72,9 +73,12 @@ def main():
     if_herd = args.if_herd
     if_sfo_gt = args.if_sfo_gt
     a = args.a
+    torch_seed = args.torch_seed
 
-    convex_var(N, g_id, k, nsamples_mlr, p, num_influ_iter, if_herd, a)
-#    get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a)
+    torch.manual_seed(torch_seed) 
+
+#    convex_var(N, g_id, k, nsamples_mlr, p, num_influ_iter, if_herd, a)
+    get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed)
 
     print "Compeleted in " + str(time.clock() - tic) + 's'
 
