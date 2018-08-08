@@ -103,6 +103,5 @@ def command_ground_truth():
 
 if __name__ == '__main__':
 #    study_k_command()
-#    command_ground_truth()
     command_solution_variance()
 #    verify_variance_files()
