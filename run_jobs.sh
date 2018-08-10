@@ -2,6 +2,9 @@
 cp /dev/null jobsRunning.txt
 cp /dev/null jobsCompleted.txt
 
+#clone git repo
+mkdir cloned_repo
+git clone . ./cloned_repo
 a=$1
 b=$2
 for i in $(seq $a $b) ; do
