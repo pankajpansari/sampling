@@ -3,6 +3,7 @@
 from __future__ import division
 # import modules used here -- sys is a very standard one
 import sys
+import os
 import numpy as np
 import math
 import matplotlib.pyplot as plt
@@ -100,37 +101,83 @@ def plot_iterates_hist():
 def plot_solution_variance():
 
     solution_dir = '/home/pankaj/Sampling/data/input/social_graphs/N_512/fw_opt/'
-    d = []
-    e = []
-    nsamples_list = [1, 5, 10]
-    for nsamples in nsamples_list:
-        a = []
-        c = []
-        for g_id in range(5):
-            b = []
-            for t in range(5):
-                seed = 123 + t 
-                opt_file = 'g_N_512_' + str(g_id) + '_20_' + str(nsamples) + '_20_0.4_100_0_0_0.0_' + str(seed) + '.txt'
-                f = open(solution_dir + opt_file, 'r')
-                opt = float(next(f))
-                f.close()
-                b.append(opt)
-            a.append(np.var(b))
-            c.append(np.mean(b))
-        d.append(np.mean(a))
-        e.append(np.mean(c))
-    print d, e
-    plt.subplot(2, 1, 1)
-    plt.plot(nsamples_list, d)
-    plt.xlabel('# samples for relaxation estimation')
-    plt.ylabel('Variance of 5 rounded solutions (averaged over 5 graphs)')
-    plt.subplot(2, 1, 2)
-    plt.plot(nsamples_list, e)
-    plt.xlabel('# samples for relaxation estimation')
-    plt.ylabel('Mean of 5 rounded solutions (averaged over 5 graphs)')
+    file_list = os.listdir(solution_dir)
+    key_list = ['0_0_0.0', '0_0_0.1', '0_1_0.1']
+    label_list = ['simple MC', 'convex with fw opt. 0.1', 'convex with greedy opt. 0.1']
+    for p in range(3):
+        d = []
+        e = []
+        nsamples_list = [1, 5, 10, 20]
+        for nsamples in nsamples_list:
+            a = []
+            c = []
+            for g_id in range(5):
+                b = []
+                for t in range(5):
+                    seed = 123 + t 
+                    opt_file = 'g_N_512_' + str(g_id) + '_20_' + str(nsamples) + '_20_0.4_100_' + str(key_list[p]) + '_' + str(seed) + '.txt'
+                    if opt_file not in file_list:
+                        opt_file = 'g_N_512_' + str(g_id) + '_20_' + str(nsamples) + '_10_0.4_100_' + str(key_list[p]) + '_' + str(seed) + '.txt'
+                        if opt_file not in file_list:
+                            print opt_file
+                            sys.exit()
+
+                    f = open(solution_dir + opt_file, 'r')
+                    opt = float(next(f))
+                    f.close()
+                    b.append(opt)
+                a.append(np.var(b))
+                c.append(np.mean(b))
+            d.append(np.mean(a))
+            e.append(np.mean(c))
+        print d, e
+        plt.subplot(2, 1, 1)
+        plt.plot(nsamples_list, d, label = label_list[p])
+        plt.xlabel('# samples for relaxation estimation')
+        plt.ylabel('Variance of 5 rounded solutions (averaged over 5 graphs)')
+        plt.legend()
+        plt.subplot(2, 1, 2)
+        plt.plot(nsamples_list, e, label = label_list[p])
+        plt.xlabel('# samples for relaxation estimation')
+        plt.ylabel('Mean of 5 rounded solutions (averaged over 5 graphs)')
+        plt.legend()
 #    plt.savefig('variance_solution.jpg')
     plt.show()
 
+def parse_timing():
+
+    solution_dir = '/home/pankaj/Sampling/data/input/social_graphs/N_512/fw_log/'
+    file_list = os.listdir(solution_dir)
+    key_list = ['0_0_0.0', '0_0_0.1', '0_1_0.1']
+    label_list = ['simple MC', 'convex with fw opt. 0.1', 'convex with greedy opt. 0.1']
+    for p in range(3):
+        d = []
+        e = []
+        nsamples_list = [1, 5, 10, 20]
+        for nsamples in nsamples_list:
+            a = []
+            c = []
+            for g_id in range(5):
+                b = []
+                for t in range(5):
+                    seed = 123 + t 
+                    log_file = 'g_N_512_' + str(g_id) + '_20_' + str(nsamples) + '_20_0.4_100_' + str(key_list[p]) + '_' + str(seed) + '.txt'
+                    if log_file not in file_list:
+                        log_file = 'g_N_512_' + str(g_id) + '_20_' + str(nsamples) + '_10_0.4_100_' + str(key_list[p]) + '_' + str(seed) + '.txt'
+                        if log_file not in file_list:
+                            print log_file
+                            sys.exit()
+
+                    f = open(solution_dir + log_file, 'r')
+                    for i in range(9):
+                        next(f)
+                    timing = float(next(f).split(' ')[0])
+                    f.close()
+                    b.append(timing)
+                c.append(np.mean(b))
+            e.append(np.mean(c))
+        print e
+ 
 # Gather our code in a main() function
 def main():
      filename = '/home/pankaj/Sampling/data/input/social_graphs/N_512/fw_log/' + sys.argv[1]
@@ -146,4 +193,5 @@ def main():
 if __name__ == '__main__':
 #    main()
 #    plot_iterates_hist()
-    plot_solution_variance()
+#    plot_solution_variance()
+    parse_timing()
