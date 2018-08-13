@@ -7,14 +7,43 @@ from influence import ic_model as submodObj
 from torch.autograd import Variable
 from frank_wolfe import runFrankWolfe
 from frank_wolfe_importance import runImportanceFrankWolfe
-from read_files import get_sfo_optimum, get_fw_optimum, read_graph
+from read_files import * 
+#from read_files import get_sfo_optimum, get_fw_optimum, read_graph
 from variance import convex_var
 import time
+import subprocess
 import argparse
 np.random.seed(1234)
 
-def get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter,
-        if_herd, if_sfo_gt, a, torch_seed):
+def get_ground_truth_email(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed):
+
+    graph_file = "/home/pankaj/Sampling/data/input/social_graphs/email_eu/email-Eu-core.txt"
+
+    dirw = "."
+
+    G = read_email_graph(graph_file, N)
+
+    temp = dirw + '/fw_log'
+
+    log_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p,
+        num_influ_iter, if_herd, if_sfo_gt, a, torch_seed]) + '.txt'
+
+    temp = dirw + '/fw_opt'
+
+    opt_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p,
+        num_influ_iter, if_herd, if_sfo_gt, a, torch_seed]) + '.txt'
+
+    x_good = torch.Tensor([0]*N) 
+
+    temp = dirw + '/iterates'
+
+    iterates_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p,
+        num_influ_iter, if_herd, if_sfo_gt, 0, torch_seed]) + '.txt'
+
+    x_opt = runImportanceFrankWolfe(G, nsamples_mlr, k, log_file, opt_file, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a)
+
+
+def get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed):
 
     graph_file = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/graphs/g_N_' + str(N) + '_' + str(g_id) + '.txt'
 
@@ -78,7 +107,7 @@ def main():
     torch.manual_seed(torch_seed) 
 
 #    convex_var(N, g_id, k, nsamples_mlr, p, num_influ_iter, if_herd, a)
-    get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed)
+    get_ground_truth_email(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed)
 
     print "Compeleted in " + str(time.clock() - tic) + 's'
 
