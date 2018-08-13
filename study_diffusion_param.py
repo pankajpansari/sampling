@@ -13,10 +13,12 @@ from influence import ic_model
 from influence import Influence 
 from frank_wolfe import runFrankWolfe
 from frank_wolfe import getRelax
+from read_files import read_facebook_graph, read_email_graph
+import subprocess
 
 random.seed(1234)
 
-dirw = "/home/pankaj/Sampling/data/working/23_07_2018/"
+dirw = "/home/pankaj/Sampling/data/working/12_08_2018/"
 
 def select_random_k_pair(G, k, nNodes, nRandom, p, num_influ_iter):
 
@@ -181,6 +183,53 @@ def influence_variance_study_parallel():
         print ' '.join(map(str, to_write_list)) + '\n'
         f.write(' '.join(map(str, to_write_list)) + '\n')
 
+def influence_variance_study_parallel_facebook():
+
+    exp_name = sys.argv[1]
+    p = float(sys.argv[2])
+    nNodes = 4039 
+    bufsize = 0
+    f = open(dirw + '/' + exp_name + '/variance_study_p_' + str(p) + '.txt', 'a', bufsize)
+
+    niter_list = [200, 400, 500, 800, 1000]
+
+    graph_file = "/home/pankaj/Sampling/data/input/social_graphs/facebook/facebook_combined.txt"
+
+    for iter_num in niter_list:
+        G = read_facebook_graph(graph_file, nNodes)
+        sample = torch.rand(nNodes) > 0.8
+        val = []
+        tic = time.clock()
+        for k in range(20):
+            val.append(ic_model(G, sample, p, iter_num).item())
+        to_write_list = [iter_num,  np.var(val), (time.clock() - tic)/20]
+        print ' '.join(map(str, to_write_list)) + '\n'
+        f.write(' '.join(map(str, to_write_list)) + '\n')
+
+def influence_variance_study_parallel_email():
+
+    exp_name = sys.argv[1]
+    p = float(sys.argv[2])
+    nNodes = 1005 
+    bufsize = 0
+    f = open(dirw + '/' + exp_name + '/variance_study_p_' + str(p) + '.txt', 'a', bufsize)
+
+    niter_list = [200, 400, 500, 800, 1000]
+
+    graph_file = "/home/pankaj/Sampling/data/input/social_graphs/email_eu/email-Eu-core.txt"
+
+    for iter_num in niter_list:
+        G = read_email_graph(graph_file, nNodes)
+        sample = torch.rand(nNodes) > 0.8
+        val = []
+        tic = time.clock()
+        for k in range(20):
+            val.append(ic_model(G, sample, p, iter_num).item())
+        to_write_list = [iter_num,  np.var(val), (time.clock() - tic)/20]
+        print ' '.join(map(str, to_write_list)) + '\n'
+        f.write(' '.join(map(str, to_write_list)) + '\n')
+
+
 def multilinear_variance_study():
 
     file_id = int(sys.argv[1])
@@ -259,7 +308,7 @@ def p_study():
     bufsize = 0
     f = open('variance_study_p_' + str(p) + '_N_' + str(nNodes) + '.txt', 'w', bufsize)
 
-    niter_list = [10, 100, 1000, 1e4]
+    niter_list = [10, 20]
 #    niter_list = [1]
     ngraphs = 2 
     nsamples =  2 
@@ -284,6 +333,54 @@ def p_study():
             to_write_list = [iter_num, np.mean(val), (time.clock() - tic)/nsamples]
             print ' '.join(map(str, to_write_list)) + '\n'
             f.write(' '.join(map(str, to_write_list)) + '\n')
+
+def p_study_facebook():
+    exp_name = sys.argv[1]
+    p = float(sys.argv[2])
+    nNodes = 4039 
+    bufsize = 0
+    f = open(dirw + '/' + exp_name + '/p_study_p_' + str(p) + '_N_' + str(nNodes) + '.txt', 'w', bufsize)
+
+    niter_list = [10, 20]
+    nsamples =  2 
+
+    graph_file = "/home/pankaj/Sampling/data/input/social_graphs/facebook/facebook_combined.txt"
+
+    for iter_num in niter_list:
+        G = read_facebook_graph(graph_file, nNodes)
+        val = []
+        tic = time.clock()
+        for j in range(nsamples):
+            sample = torch.rand(nNodes) > 0.8
+            val.append(ic_model(G, sample, p, iter_num).item())
+            print sample.sum().item()*1.0/nNodes
+        to_write_list = [iter_num, np.mean(val)*1.0/nNodes, (time.clock() - tic)/nsamples]
+        print ' '.join(map(str, to_write_list)) + '\n'
+        f.write(' '.join(map(str, to_write_list)) + '\n')
+
+def p_study_email():
+    exp_name = sys.argv[1]
+    p = float(sys.argv[2])
+    nNodes = 1005 
+    bufsize = 0
+    f = open(dirw + '/' + exp_name + '/p_study_p_' + str(p) + '_N_' + str(nNodes) + '.txt', 'w', bufsize)
+
+    niter_list = [10, 20]
+    nsamples =  2 
+
+    graph_file = "/home/pankaj/Sampling/data/input/social_graphs/email_eu/email-Eu-core.txt"
+
+    for iter_num in niter_list:
+        G = read_email_graph(graph_file, nNodes)
+        val = []
+        tic = time.clock()
+        for j in range(nsamples):
+            sample = torch.rand(nNodes) > 0.8
+            val.append(ic_model(G, sample, p, iter_num).item())
+            print sample.sum().item()*1.0/nNodes
+        to_write_list = [iter_num, np.mean(val)*1.0/nNodes, (time.clock() - tic)/nsamples]
+        print ' '.join(map(str, to_write_list)) + '\n'
+        f.write(' '.join(map(str, to_write_list)) + '\n')
 
 def main():
 
@@ -320,6 +417,12 @@ def main():
     f.close()
 
 if __name__ == '__main__':
-#    influence_variance_study_parallel()
-#    multilinear_variance_study() 
-    study_k_effect()
+    exp_name = sys.argv[1]
+    subprocess.call(['./aux/create_workspace.sh', exp_name])
+    x = int(sys.argv[3])
+    if x == 0:
+        influence_variance_study_parallel_facebook()
+    else:
+        influence_variance_study_parallel_email()
+#    p_study_facebook()
+#    p_study_email()
