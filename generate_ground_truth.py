@@ -19,7 +19,7 @@ def get_ground_truth_email(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_i
 
     graph_file = "/home/pankaj/Sampling/data/input/social_graphs/email_eu/email-Eu-core.txt"
 
-    dirw = "."
+    dirw = "./workspace"
 
     G = read_email_graph(graph_file, N)
 
