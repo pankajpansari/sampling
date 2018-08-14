@@ -144,6 +144,128 @@ def plot_solution_variance():
 #    plt.savefig('variance_solution.jpg')
     plt.show()
 
+def plot_email_solution_variance():
+
+    solution_dir = '/home/pankaj/Sampling/data/working/13-08-2018-email_sol_var_mc/workspace/'
+    file_list = os.listdir(solution_dir)
+    key_list = ['0_0_0.0']
+    label_list = ['simple MC']
+    for p in range(1):
+        d = []
+        e = []
+        nsamples_list = [1, 5]
+        for nsamples in nsamples_list:
+            b = []
+            for t in range(5):
+                seed = 123 + t 
+                opt_file = 'fw_opt_20_' + str(nsamples) + '_10_0.4_200_' + str(key_list[p]) + '_' + str(seed) + '.txt'
+                if opt_file not in file_list:
+                    print opt_file
+                    sys.exit()
+
+                f = open(solution_dir + opt_file, 'r')
+                opt = float(next(f))
+                f.close()
+                b.append(opt)
+            d.append(np.var(b))
+            e.append(np.mean(b))
+        print d, e
+        plt.subplot(2, 1, 1)
+        plt.plot(nsamples_list, d, label = label_list[p], marker = '+', markersize = 10)
+        plt.xlabel('# samples for relaxation estimation')
+        plt.ylabel('Variance of 5 rounded solutions (1 graph, 10 FW iter)')
+        plt.legend()
+        plt.subplot(2, 1, 2)
+        plt.plot(nsamples_list, e, label = label_list[p], marker = '+', markersize = 10)
+        plt.xlabel('# samples for relaxation estimation')
+        plt.ylabel('Variance of 5 rounded solutions (1 graph, 10 FW iter)')
+        plt.legend()
+#    plt.savefig('variance_solution.jpg')
+    plt.show()
+
+def parse_email_timing():
+
+    solution_dir = '/home/pankaj/Sampling/data/working/13-08-2018-email_sol_var_mc/workspace/'
+    file_list = os.listdir(solution_dir)
+    key_list = ['0_0_0.0']
+    label_list = ['simple MC']
+    for p in range(1):
+        d = []
+        nsamples_list = [1, 5]
+        for nsamples in nsamples_list:
+            b = []
+            for t in range(5):
+                seed = 123 + t 
+                opt_file = 'fw_log_20_' + str(nsamples) + '_10_0.4_200_' + str(key_list[p]) + '_' + str(seed) + '.txt'
+                if opt_file not in file_list:
+                    print opt_file
+                    sys.exit()
+
+                f = open(solution_dir + opt_file, 'r')
+                for i in range(9):
+                    next(f)
+                timing = float(next(f).split(' ')[0])
+                f.close()
+                print nsamples, timing
+                b.append(timing)
+            d.append(np.mean(b))
+        print d
+
+def plot_email_obj():
+
+    solution_dir = '/home/pankaj/Sampling/data/working/13-08-2018-email_sol_var_mc/workspace/'
+    file_list = os.listdir(solution_dir)
+    key_list = ['0_0_0.0']
+    label_list = ['simple MC']
+    for p in range(1):
+        nsamples_list = [5]
+        for nsamples in nsamples_list:
+            for t in range(5):
+                b = []
+                seed = 123 + t 
+                opt_file = 'fw_log_20_' + str(nsamples) + '_10_0.4_200_' + str(key_list[p]) + '_' + str(seed) + '.txt'
+                if opt_file not in file_list:
+                    print opt_file
+                    sys.exit()
+
+                f = open(solution_dir + opt_file, 'r')
+                for i in range(10):
+                    obj = float(next(f).split(' ')[1])
+                    b.append(obj)
+                f.close()
+                plt.plot(range(1, 11), b, linestyle = '-')
+    plt.xlabel('FW iterations')
+    plt.ylabel('Relaxation objective')
+    plt.show()
+
+def plot_facebook_obj():
+
+    solution_dir = '/home/pankaj/Sampling/data/working/13-08-2018-facebook_sol_var_mc/workspace/'
+    file_list = os.listdir(solution_dir)
+    key_list = ['0_0_0.0']
+    label_list = ['simple MC']
+    for p in range(1):
+        nsamples_list = [1]
+        for nsamples in nsamples_list:
+            for t in range(5):
+                b = []
+                seed = 123 + t 
+                opt_file = 'fw_log_20_' + str(nsamples) + '_10_0.4_200_' + str(key_list[p]) + '_' + str(seed) + '.txt'
+                if opt_file not in file_list:
+                    print opt_file
+                    sys.exit()
+
+                f = open(solution_dir + opt_file, 'r')
+                for i in range(4):
+                    obj = float(next(f).split(' ')[1])
+                    b.append(obj)
+                f.close()
+                plt.plot(range(1, 5), b, linestyle = '-')
+    plt.xlabel('FW iterations')
+    plt.ylabel('Relaxation objective')
+    plt.show()
+
+
 def parse_timing():
 
     solution_dir = '/home/pankaj/Sampling/data/input/social_graphs/N_512/fw_log/'
@@ -193,5 +315,7 @@ def main():
 if __name__ == '__main__':
 #    main()
 #    plot_iterates_hist()
-#    plot_solution_variance()
-    parse_timing()
+#    plot_email_solution_variance()
+#    plot_email_obj()
+    plot_facebook_obj()
+#    parse_email_timing()
