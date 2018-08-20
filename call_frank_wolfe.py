@@ -6,7 +6,7 @@ import torch
 from influence import ic_model as submodObj
 from torch.autograd import Variable
 from frank_wolfe import runFrankWolfe
-from frank_wolfe_importance import runImportanceFrankWolfe
+from frank_wolfe_importance import runImportanceFrankWolfe, fw_reduced_nodes
 from read_files import * 
 #from read_files import get_sfo_optimum, get_fw_optimum, read_graph
 from variance import convex_var
@@ -40,7 +40,8 @@ def get_ground_truth_email(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_i
     iterates_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p,
         num_influ_iter, if_herd, if_sfo_gt, 0, torch_seed]) + '.txt'
 
-    x_opt = runImportanceFrankWolfe(G, nsamples_mlr, k, log_file, opt_file, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a)
+#    x_opt = runImportanceFrankWolfe(G, nsamples_mlr, k, log_file, opt_file, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a)
+    x_opt = fw_reduced_nodes(G, nsamples_mlr, k, log_file, opt_file, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a)
 
 def get_ground_truth_facebook(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed):
 
@@ -134,8 +135,8 @@ def main():
     torch.manual_seed(torch_seed) 
 
 #    convex_var(N, g_id, k, nsamples_mlr, p, num_influ_iter, if_herd, a)
-#    get_ground_truth_email(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed)
-    get_ground_truth_facebook(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed)
+    get_ground_truth_email(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed)
+#    get_ground_truth_facebook(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed)
 
     print "Compeleted in " + str(time.clock() - tic) + 's'
 

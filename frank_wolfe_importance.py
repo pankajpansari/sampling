@@ -7,6 +7,7 @@ from influence import ic_model as submodObj
 from influence import Influence 
 from torch.autograd import Variable
 from frank_wolfe import getRelax
+from read_files import * 
 #from __future__ import print_function
 import logger
 from builtins import range
@@ -102,6 +103,121 @@ def getImportanceGrad(G, x_good, x, nsamples, influ_obj, herd, a):
 
     return grad*1.0/nsamples
 
+def getReducedGrad(G, x_good, x, nsamples, influ_obj, herd, a, important_nodes):
+
+    N = G.number_of_nodes()
+
+    grad = Variable(torch.zeros(N))
+
+    x_prp = (1 - a)*x + a*x_good
+
+    x_prp[important_nodes] = 1e-4
+
+    if herd == 1: 
+        samples_list = herd_points(x_prp, nsamples) 
+    else:
+        samples_list = Variable(torch.bernoulli(x_prp.repeat(nsamples, 1)))
+
+    w = getImportanceWeights(samples_list, x, x_prp)
+
+    for t in range(nsamples):
+        sample = samples_list[t] 
+        m = torch.zeros(sample.size()) 
+        for p in important_nodes:
+            m[p] = 1
+            grad[p] = grad[p] + w[t]*(influ_obj(np.logical_or(sample.numpy(), m.numpy())) - influ_obj(np.logical_and(sample.numpy(), np.logical_not(m.numpy()))))
+            m[p] = 0
+
+    return grad*1.0/nsamples
+
+
+def getImportantNodes(G, D):
+    out_degree_dict = nx.out_degree_centrality(G)
+    val = out_degree_dict.values()
+    keys = out_degree_dict.keys()
+    important_nodes = np.argsort(val)[-D:] 
+    return important_nodes
+
+def fw_reduced_nodes(G, nsamples, k, log_file, opt_file, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a):
+
+    N = nx.number_of_nodes(G)
+    D = 200
+
+    influ_obj = Influence(G, p, num_influ_iter)
+
+    important_nodes = getImportantNodes(G, D)
+
+    x = Variable(torch.Tensor([1e-4]*N))
+
+    x[important_nodes] = 1.0*k/D
+
+    bufsize = 0
+
+    f = open(log_file, 'w', bufsize)
+    f2 = open(iterates_file, 'w', bufsize)
+
+    tic = time.clock()
+
+    iter_num = 0
+    obj = getImportanceRelax(G, x_good, x, nsamples, influ_obj, if_herd, a)
+    toc = time.clock()
+
+    print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic),  "   Total/New/Cache: ", influ_obj.itr_total , influ_obj.itr_new , influ_obj.itr_cache
+
+    f.write(str(toc - tic) + " " + str(obj.item()) + " " + str(influ_obj.itr_total) + '/' + str(influ_obj.itr_new) + '/' + str(influ_obj.itr_cache) + "\n") 
+
+    for x_t in x:
+        f2.write(str(x_t.item()) + '\n')
+    f2.write('\n')
+
+    for iter_num in np.arange(1, num_fw_iter):
+
+        influ_obj.counter_reset()
+
+        grad = getReducedGrad(G, x_good, x,nsamples, influ_obj, if_herd, a, important_nodes)
+
+        x_star = getCondGrad(grad, k)
+
+        step = 2.0/(iter_num + 2) 
+
+        x = step*x_star + (1 - step)*x
+
+        obj = getImportanceRelax(G, x_good, x, nsamples, influ_obj, if_herd, a)
+        
+        toc = time.clock()
+
+        print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic),  "   Total/New/Cache: ", influ_obj.itr_total , influ_obj.itr_new , influ_obj.itr_cache
+
+        f.write(str(toc - tic) + " " + str(obj.item()) + " " + str(influ_obj.itr_total) + '/' + str(influ_obj.itr_new) + '/' + str(influ_obj.itr_cache) + "\n") 
+
+
+        for x_t in x:
+            f2.write(str(x_t.item()) + '\n')
+        f2.write('\n')
+
+    f.close()
+    f2.close()
+
+    x_opt = x
+
+    #Round the optimum solution and get function values
+    top_k = Variable(torch.zeros(N)) #conditional grad
+    sorted_ind = torch.sort(x_opt, descending = True)[1][0:k]
+    top_k[sorted_ind] = 1
+    gt_val = submodObj(G, top_k, p, 100)
+
+    #Save optimum solution and value
+    f = open(opt_file, 'w')
+
+    f.write(str(gt_val.item()) + '\n')
+
+    for x_t in x_opt:
+        f.write(str(x_t.item()) + '\n')
+    f.close()
+
+    return x_opt
+
+
 def runImportanceFrankWolfe(G, nsamples, k, log_file, opt_file, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a):
 
     N = nx.number_of_nodes(G)
@@ -177,7 +293,9 @@ def runImportanceFrankWolfe(G, nsamples, k, log_file, opt_file, iterates_file, n
     return x_opt
 
 if __name__ == '__main__':
+    graph_file = "/home/pankaj/Sampling/data/input/social_graphs/email_eu/email-Eu-core.txt"
+    N = 1005     
+    G = read_email_graph(graph_file, N)
+    getImportantNodes(G, 100)
+    
 
-    x = torch.rand(3)
-    samples_list = Variable(torch.bernoulli(x.repeat(2, 1)))    
-    print getLogProb(samples_list, x)
