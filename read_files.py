@@ -69,6 +69,15 @@ def read_graph(graph_file, N):
         to_id = int(line.split()[1])
         G.add_edge(from_id, to_id)
     
+
+    #Remove isolated nodes
+
+    for i in range(N):
+        if nx.is_isolate(G, i):
+            G.remove_node(i)
+
+    print '#nodes = ', nx.number_of_nodes(G), ' #edges = ', nx.number_of_edges(G) 
+
     return G
 
 def read_email_graph(graph_file, N):
@@ -103,10 +112,5 @@ def read_facebook_graph(graph_file, N):
     return G
 
 if __name__ == '__main__':
-#    N = 1005
-#    G = read_email_graph('/home/pankaj/Sampling/data/input/social_graphs/email_eu/email-Eu-core.txt', N)
-#    print G.number_of_edges()
-#
-    N = 4039 
-    G = read_facebook_graph('/home/pankaj/Sampling/data/input/social_graphs/facebook/facebook_combined.txt', N)
-    print G.number_of_edges()
+    N = 1024
+    read_graph('/home/pankaj/Sampling/data/input/social_graphs/N_1024/g_N_1024_999.txt', N)
