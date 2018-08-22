@@ -82,14 +82,13 @@ def call_FrankWolfe(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if
 
     temp = dirw + '/fw_log'
 
-    log_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p,
-        num_influ_iter, if_herd, if_sfo_gt, a, torch_seed]) + '.txt'
+    log_file = '_'.join(str(x) for x in [temp, N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed]) + '.txt'
+
     temp = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_opt/g_N_' + str(N) + '_' + str(g_id) 
 
     temp = dirw + '/fw_opt'
 
-    opt_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p,
-        num_influ_iter, if_herd, if_sfo_gt, a, torch_seed]) + '.txt'
+    opt_file = '_'.join(str(x) for x in [temp, N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed]) + '.txt'
 
 #    M = G.number_of_nodes()
     x_good = torch.Tensor([0]*N)
@@ -99,7 +98,6 @@ def call_FrankWolfe(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if
 #
 #    else:
 #        x_good = get_fw_optimum('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_gt/g_N_' + str(N) + '_id_' + str(g_id) + '_k_' + str(k) + '_100.txt', N) 
-
 
     x_opt = runImportanceFrankWolfe(G, nsamples_mlr, k, log_file, opt_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a)
 
