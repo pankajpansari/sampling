@@ -70,13 +70,14 @@ def read_graph(graph_file, N):
         G.add_edge(from_id, to_id)
     
 
-    #Remove isolated nodes
-
-    for i in range(N):
-        if nx.is_isolate(G, i):
-            G.remove_node(i)
-
-    print '#nodes = ', nx.number_of_nodes(G), ' #edges = ', nx.number_of_edges(G) 
+#    print '#nodes = ', nx.number_of_nodes(G), ' #edges = ', nx.number_of_edges(G) 
+#    #Remove isolated nodes
+#
+#    for i in range(N):
+#        if nx.is_isolate(G, i):
+#            G.remove_node(i)
+#
+#    print '#nodes = ', nx.number_of_nodes(G), ' #edges = ', nx.number_of_edges(G) 
 
     return G
 
