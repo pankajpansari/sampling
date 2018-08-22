@@ -301,6 +301,33 @@ def study_k_effect():
     sys.stdout.flush()
     f.write(' '.join(map(str, to_write_list)) + '\n')
 
+def study_k_effect_facebook():
+
+    graph_file = '/home/pankaj/Sampling/data/input/social_graphs/facebook/facebook_combined.txt'
+
+    N = 4039
+
+    G = read_facebook_graph(graph_file, N)
+
+    influ_obj = Influence(G, 0.3, 200)
+
+    degree_dict = nx.out_degree_centrality(G)
+ 
+    val = degree_dict.values()
+
+    print [N*x for x in np.sort(val)[-10:]]
+
+    for k in range(10, 200, 10):
+    
+
+        a = np.argsort(val)[-k:]
+
+        sample = torch.zeros(N)
+
+        sample[a] = 1
+
+        print k, influ_obj(sample.numpy()).item()
+
 def p_study():
 
     p = float(sys.argv[1])
@@ -417,12 +444,13 @@ def main():
     f.close()
 
 if __name__ == '__main__':
-    exp_name = sys.argv[1]
-    subprocess.call(['./aux/create_workspace.sh', exp_name])
-    x = int(sys.argv[3])
-    if x == 0:
-        influence_variance_study_parallel_facebook()
-    else:
-        influence_variance_study_parallel_email()
+    study_k_effect_facebook()
+#    exp_name = sys.argv[1]
+#    subprocess.call(['./aux/create_workspace.sh', exp_name])
+#    x = int(sys.argv[3])
+#    if x == 0:
+#        influence_variance_study_parallel_facebook()
+#    else:
+#        influence_variance_study_parallel_email()
 #    p_study_facebook()
 #    p_study_email()

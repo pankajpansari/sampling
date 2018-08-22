@@ -97,9 +97,10 @@ def getImportanceGrad(G, x_good, x, nsamples, influ_obj, herd, a):
         sample = samples_list[t] 
         m = torch.zeros(sample.size()) 
         for p in np.arange(N):
-            m[p] = 1
-            grad[p] = grad[p] + w[t]*(influ_obj(np.logical_or(sample.numpy(), m.numpy())) - influ_obj(np.logical_and(sample.numpy(), np.logical_not(m.numpy()))))
-            m[p] = 0
+            if nx.is_isolate(G, p) is False:
+                m[p] = 1
+                grad[p] = grad[p] + w[t]*(influ_obj(np.logical_or(sample.numpy(), m.numpy())) - influ_obj(np.logical_and(sample.numpy(), np.logical_not(m.numpy()))))
+                m[p] = 0
 
     return grad*1.0/nsamples
 
@@ -110,8 +111,6 @@ def getReducedGrad(G, x_good, x, nsamples, influ_obj, herd, a, important_nodes):
     grad = Variable(torch.zeros(N))
 
     x_prp = (1 - a)*x + a*x_good
-
-    x_prp[important_nodes] = 1e-4
 
     if herd == 1: 
         samples_list = herd_points(x_prp, nsamples) 
@@ -130,6 +129,34 @@ def getReducedGrad(G, x_good, x, nsamples, influ_obj, herd, a, important_nodes):
 
     return grad*1.0/nsamples
 
+def getReducedPrunedGrad(G, x_good, x, nsamples, influ_obj, herd, a, important_nodes):
+
+    N = G.number_of_nodes()
+
+    grad = Variable(torch.zeros(N))
+
+    x_prp = (1 - a)*x + a*x_good
+
+    if herd == 1: 
+        samples_list = herd_points(x_prp, nsamples) 
+    else:
+        samples_list = Variable(torch.bernoulli(x_prp.repeat(nsamples, 1)))
+
+    w = getImportanceWeights(samples_list, x, x_prp)
+
+    pruned_nodes = [t for t in range(len(x_prp)) if x_prp[t] < 1e-4]
+
+    for t in range(nsamples):
+        sample = samples_list[t] 
+        m = torch.zeros(sample.size()) 
+        for p in important_nodes:
+            if p not in pruned_nodes:
+                print p
+                m[p] = 1
+                grad[p] = grad[p] + w[t]*(influ_obj(np.logical_or(sample.numpy(), m.numpy())) - influ_obj(np.logical_and(sample.numpy(), np.logical_not(m.numpy()))))
+                m[p] = 0
+
+    return grad*1.0/nsamples
 
 def getImportantNodes(G, D):
     out_degree_dict = nx.out_degree_centrality(G)
@@ -141,6 +168,7 @@ def getImportantNodes(G, D):
 def fw_reduced_nodes(G, nsamples, k, log_file, opt_file, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a):
 
     N = nx.number_of_nodes(G)
+
     D = 200
 
     influ_obj = Influence(G, p, num_influ_iter)
@@ -174,7 +202,7 @@ def fw_reduced_nodes(G, nsamples, k, log_file, opt_file, iterates_file, num_fw_i
 
         influ_obj.counter_reset()
 
-        grad = getReducedGrad(G, x_good, x,nsamples, influ_obj, if_herd, a, important_nodes)
+        grad = getReducedPrunedGrad(G, x_good, x,nsamples, influ_obj, if_herd, a, important_nodes)
 
         x_star = getCondGrad(grad, k)
 
@@ -218,7 +246,7 @@ def fw_reduced_nodes(G, nsamples, k, log_file, opt_file, iterates_file, num_fw_i
     return x_opt
 
 
-def runImportanceFrankWolfe(G, nsamples, k, log_file, opt_file, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a):
+def runImportanceFrankWolfe(G, nsamples, k, log_file, opt_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a):
 
     N = nx.number_of_nodes(G)
 
@@ -229,7 +257,6 @@ def runImportanceFrankWolfe(G, nsamples, k, log_file, opt_file, iterates_file, n
     bufsize = 0
 
     f = open(log_file, 'w', bufsize)
-    f2 = open(iterates_file, 'w', bufsize)
 
     tic = time.clock()
 
@@ -240,10 +267,6 @@ def runImportanceFrankWolfe(G, nsamples, k, log_file, opt_file, iterates_file, n
     print "Iteration: ", iter_num, "    obj = ", obj.item(), "  time = ", (toc - tic),  "   Total/New/Cache: ", influ_obj.itr_total , influ_obj.itr_new , influ_obj.itr_cache
 
     f.write(str(toc - tic) + " " + str(obj.item()) + " " + str(influ_obj.itr_total) + '/' + str(influ_obj.itr_new) + '/' + str(influ_obj.itr_cache) + "\n") 
-
-    for x_t in x:
-        f2.write(str(x_t.item()) + '\n')
-    f2.write('\n')
 
     for iter_num in np.arange(1, num_fw_iter):
 
@@ -265,13 +288,7 @@ def runImportanceFrankWolfe(G, nsamples, k, log_file, opt_file, iterates_file, n
 
         f.write(str(toc - tic) + " " + str(obj.item()) + " " + str(influ_obj.itr_total) + '/' + str(influ_obj.itr_new) + '/' + str(influ_obj.itr_cache) + "\n") 
 
-
-        for x_t in x:
-            f2.write(str(x_t.item()) + '\n')
-        f2.write('\n')
-
     f.close()
-    f2.close()
 
     x_opt = x
 

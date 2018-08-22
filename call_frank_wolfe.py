@@ -15,7 +15,7 @@ import subprocess
 import argparse
 np.random.seed(1234)
 
-def get_ground_truth_email(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed):
+def call_FrankWolfe_email(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed):
 
     graph_file = "/home/pankaj/Sampling/data/input/social_graphs/email_eu/email-Eu-core.txt"
 
@@ -43,7 +43,7 @@ def get_ground_truth_email(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_i
 #    x_opt = runImportanceFrankWolfe(G, nsamples_mlr, k, log_file, opt_file, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a)
     x_opt = fw_reduced_nodes(G, nsamples_mlr, k, log_file, opt_file, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a)
 
-def get_ground_truth_facebook(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed):
+def call_FrankWolfe_facebook(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed):
 
     graph_file = "/home/pankaj/Sampling/data/input/social_graphs/facebook/facebook_combined.txt"
 
@@ -68,38 +68,40 @@ def get_ground_truth_facebook(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_infl
     iterates_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p,
         num_influ_iter, if_herd, if_sfo_gt, 0, torch_seed]) + '.txt'
 
-    x_opt = runImportanceFrankWolfe(G, nsamples_mlr, k, log_file, opt_file, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a)
+#    x_opt = runImportanceFrankWolfe(G, nsamples_mlr, k, log_file, opt_file, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a)
+    x_opt = fw_reduced_nodes(G, nsamples_mlr, k, log_file, opt_file, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a)
 
 
-def get_ground_truth(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed):
+def call_FrankWolfe(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed):
 
-    graph_file = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/graphs/g_N_' + str(N) + '_' + str(g_id) + '.txt'
+    graph_file = '/home/pankaj/Sampling/data/input/social_graphs/answers_synthetic/N_' + str(N) + '/g_N_' + str(N) + '_' + str(g_id) + '.txt'
 
     G = read_graph(graph_file, N)
 
-    temp = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_log/g_N_' + str(N) + '_' + str(g_id) 
+    dirw = "./workspace"
+
+    temp = dirw + '/fw_log'
 
     log_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p,
         num_influ_iter, if_herd, if_sfo_gt, a, torch_seed]) + '.txt'
-
     temp = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_opt/g_N_' + str(N) + '_' + str(g_id) 
+
+    temp = dirw + '/fw_opt'
 
     opt_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p,
         num_influ_iter, if_herd, if_sfo_gt, a, torch_seed]) + '.txt'
 
-    if if_sfo_gt == 1:
+#    M = G.number_of_nodes()
+    x_good = torch.Tensor([0]*N)
+#    if if_sfo_gt == 1:
+#
+#        x_good = get_sfo_optimum('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/sfo_gt/g_N_' + str(N) + '_id_' + str(g_id) + '_k_' + str(k) + '.txt', N) 
+#
+#    else:
+#        x_good = get_fw_optimum('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_gt/g_N_' + str(N) + '_id_' + str(g_id) + '_k_' + str(k) + '_100.txt', N) 
 
-        x_good = get_sfo_optimum('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/sfo_gt/g_N_' + str(N) + '_id_' + str(g_id) + '_k_' + str(k) + '.txt', N) 
 
-    else:
-        x_good = get_fw_optimum('/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/fw_gt/g_N_' + str(N) + '_id_' + str(g_id) + '_k_' + str(k) + '_100.txt', N) 
-
-    temp = '/home/pankaj/Sampling/data/input/social_graphs/N_' + str(N) + '/iterates/g_N_' + str(N) + '_' + str(g_id) 
-
-    iterates_file = '_'.join(str(x) for x in [temp, k, nsamples_mlr, num_fw_iter, p,
-        num_influ_iter, if_herd, if_sfo_gt, 0, torch_seed]) + '.txt'
-
-    x_opt = runImportanceFrankWolfe(G, nsamples_mlr, k, log_file, opt_file, iterates_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a)
+    x_opt = runImportanceFrankWolfe(G, nsamples_mlr, k, log_file, opt_file, num_fw_iter, p, num_influ_iter, if_herd, x_good, a)
 
 def main():
 
@@ -135,8 +137,9 @@ def main():
     torch.manual_seed(torch_seed) 
 
 #    convex_var(N, g_id, k, nsamples_mlr, p, num_influ_iter, if_herd, a)
-    get_ground_truth_email(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed)
-#    get_ground_truth_facebook(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed)
+#    call_FrankWolfe_email(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed)
+#    call_FrankWolfe_facebook(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed)
+    call_FrankWolfe(N, g_id, k, nsamples_mlr, num_fw_iter, p, num_influ_iter, if_herd, if_sfo_gt, a, torch_seed)
 
     print "Compeleted in " + str(time.clock() - tic) + 's'
 
